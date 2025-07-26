@@ -27,76 +27,81 @@
 
 ---
 
-## 🚀 What is Flow‑Forge?
-
-**Flow‑Forge** is a modern, visual automation platform inspired by **Zapier**. It lets users connect services like **Gmail**, **Google Sheets**, and **Webhooks** through an intuitive **drag‑and‑drop** builder. Flows can include **delays**, **conditions**, and multiple actions, powered by a **pluggable .NET execution engine**.
+## 📚 Table of Contents
+- [🚀 Overview](#-overview)
+- [✨ Features](#-features)
+- [🧱 Architecture](#-architecture)
+- [🛠 Tech Stack](#-tech-stack)
+- [📂 Project Structure](#-project-structure)
+- [✅ Prerequisites](#-prerequisites)
+- [🔧 Backend Setup](#-backend-setup-aspnet-core)
+- [💻 Frontend Setup](#-frontend-setup-react)
+- [🔐 OAuth Scopes](#-oauth-scopes)
+- [🧪 Quick Start](#-quick-start)
+- [🧭 API Endpoints](#-api-endpoints-example)
+- [🗺 Roadmap](#-roadmap)
+- [📸 Screenshots](#-screenshots)
+- [🤝 Contributing](#-contributing)
+- [📜 License](#-license)
 
 ---
 
-## ✨ Core Features
+## 🚀 Overview
 
-- **Visual Flow Builder** — No-code canvas using **React Flow**.
-- **Webhook Triggers** — Kick off flows from any external service.
-- **Gmail Action Node** — Send emails securely using Google OAuth2.
-- **Google Sheets Node** — Append data to spreadsheets from your flows.
-- **Delay Node** — Add wait steps in your workflows.
-- **Pluggable Node Architecture** — Add new services without touching the core.
-- **Secure & Multi-tenant** — **Clerk**-based auth with proper JWT validation.
-- **Execution Logging (Backend)** — Inspect and troubleshoot runs.
+**Flow‑Forge** is a modern, visual automation platform inspired by **Zapier**. It allows users to connect services like **Gmail**, **Google Sheets**, and **Webhooks** using an intuitive **drag‑and‑drop flow builder**.  
+Flows can include **delays**, **conditions**, and multiple actions — all powered by a **pluggable .NET execution engine**.
 
 ---
 
-## 🧱 Architecture (High-level)
+## ✨ Features
 
-Frontend (React + React Flow + Shadcn UI)
-|
-| JWT (Clerk)
-v
-Backend (ASP.NET Core 8, REST API)
-|
-| EF Core + MySQL
-v
-Database (MySQL)
+- **Visual Flow Builder** — No-code canvas powered by **React Flow**.
+- **Webhook Triggers** — Kick off flows from external events.
+- **Gmail Integration** — Send emails via Google OAuth2.
+- **Google Sheets Node** — Append data to spreadsheets.
+- **Delay & Conditional Nodes** — Add logic & timing to flows.
+- **Pluggable Node Architecture** — Extend services without core changes.
+- **Secure Authentication** — Multi-tenant with **Clerk** & JWT validation.
+- **Execution Logs** — Backend run history for debugging.
 
-Google OAuth2 for Gmail & Sheets
+---
 
-Pluggable Flow Engine (Triggers, Actions, Conditions)
+## 🧱 Architecture
 
-yaml
+
+graph TD
+    A[Frontend (React + React Flow + Shadcn UI)] -->|JWT (Clerk)| B[Backend (ASP.NET Core 8)]
+    B -->|EF Core + MySQL| C[(Database: MySQL)]
+    B --> D[Pluggable Flow Engine]
+    D --> E[Triggers, Actions, Conditions]
+    B --> F[Google OAuth2 (Gmail & Sheets)]
+🛠 Tech Stack
+Layer	Technologies
+Frontend	React 18, React Flow, Shadcn UI, Tailwind CSS
+Backend	ASP.NET Core 8 (C#), Entity Framework Core
+Database	MySQL
+Auth	Clerk (JWT-based authentication)
+Integrations	Google APIs (Gmail, Sheets), MimeKit
+
+📂 Project Structure
+bash
 Copy
 Edit
-
----
-
-## 🛠 Tech Stack
-
-| Area        | Tech                                                                 |
-|-------------|----------------------------------------------------------------------|
-| **Frontend**| React, React Flow, Shadcn UI, Tailwind CSS                           |
-| **Backend** | ASP.NET Core 8 (C#), Entity Framework Core                           |
-| **Database**| MySQL                                                                 |
-| **Auth**    | Clerk (JWT)                                                          |
-| **Integrations** | Google APIs (Gmail, Sheets), MimeKit                            |
-
----
-
-## 📂 Repo Structure (suggested)
-
 Flow-Forge/
 ├── backend/                 # ASP.NET Core 8 Web API
-│   ├── FlowForge.csproj
 │   ├── Controllers/
 │   ├── Models/
 │   ├── DTOs/
-│   ├── Engine/              # FlowEngine, ParsedFlow, Nodes
+│   ├── Engine/              # FlowEngine, Nodes, Execution logic
 │   ├── Services/
 │   ├── Repositories/
+│   ├── FlowForge.csproj
 │   ├── appsettings.json
 │   └── ...
 ├── frontend/                # React + React Flow + Shadcn UI
 │   ├── src/
-│   │   ├── Pages/
-│   │   ├── Apis/
+│   │   ├── pages/
+│   │   ├── apis/
 │   │   ├── components/
 │   │   └── ...
 │   ├── .env.local
@@ -104,8 +109,6 @@ Flow-Forge/
 ├── .gitignore
 ├── README.md
 └── LICENSE
-If you’re currently keeping backend inside the frontend folder, that’s OK—just explain it in this README. You can restructure later.
-
 ✅ Prerequisites
 .NET 8 SDK
 
@@ -113,9 +116,9 @@ Node.js (LTS)
 
 MySQL 8+
 
-A Clerk account (Frontend API + JWKS URL)
+Clerk account (Frontend API + JWKS URL)
 
-A Google Cloud project (OAuth 2.0 client + enabled Gmail & Sheets APIs)
+Google Cloud Project with Gmail & Sheets APIs enabled
 
 🔧 Backend Setup (ASP.NET Core)
 bash
@@ -129,15 +132,11 @@ bash
 Copy
 Edit
 dotnet user-secrets init
-
-# Clerk
 dotnet user-secrets set "Jwt:Authority" "https://YOUR-CLERK-INSTANCE.clerk.accounts.dev"
-dotnet user-secrets set "Jwt:Audience" "your-clerk-audience-if-any" # optional
-
-# Google OAuth (re-use for Gmail & Sheets)
+dotnet user-secrets set "Jwt:Audience" "your-clerk-audience-if-any"
 dotnet user-secrets set "Google:ClientId" "YOUR_GOOGLE_CLIENT_ID"
 dotnet user-secrets set "Google:ClientSecret" "YOUR_GOOGLE_CLIENT_SECRET"
-Update appsettings.json (DB):
+Update DB connection in appsettings.json:
 
 json
 Copy
@@ -145,7 +144,7 @@ Edit
 "ConnectionStrings": {
   "DefaultConnection": "Server=localhost;Database=FlowForgeDb;User=root;Password=YOUR_PASSWORD;"
 }
-Run EF migrations & start API:
+Run migrations & start API:
 
 bash
 Copy
@@ -153,7 +152,7 @@ Edit
 dotnet ef migrations add InitialCreate
 dotnet ef database update
 dotnet run
-Backend will run at https://localhost:7025
+Backend runs at https://localhost:7025.
 
 💻 Frontend Setup (React)
 bash
@@ -168,102 +167,73 @@ Copy
 Edit
 VITE_CLERK_PUBLISHABLE_KEY=pk_test_xxxxxxxxx
 VITE_API_BASE_URL=https://localhost:7025/api
-Run:
+Start development server:
 
 bash
 Copy
 Edit
 npm run dev
-Frontend will run at http://localhost:5173
+Frontend runs at http://localhost:5173.
 
-🔐 OAuth Scopes Used
-text
+🔐 OAuth Scopes
+arduino
 Copy
 Edit
 https://www.googleapis.com/auth/gmail.send
 https://www.googleapis.com/auth/spreadsheets
-🧪 How to Use
-Sign in with Clerk.
+🧪 Quick Start
+Sign in using Clerk.
 
-Go to Integrations / Connections → Connect Google (OAuth flow).
+Go to Integrations → Connect Google (OAuth).
 
-Head to Flows → Create New Flow.
+Create a new flow: Webhook → Delay → Gmail → Google Sheets.
 
-Drag nodes: Webhook → Delay → Gmail → Google Sheets.
+Save & Run flow, or trigger via POST to webhook.
 
-Save and Run flow (or POST to the webhook endpoint using Postman/Google Forms).
-
-🧭 API (Quick Glance)
-Replace with your actual routes if different.
-
+🧭 API Endpoints (Example)
 POST /api/flows – Create flow
 
-GET /api/flows/user/{clerkUserId} – List flows for user
+GET /api/flows/user/{clerkUserId} – List user flows
 
-POST /api/flows/{id}/run – Run a flow
+POST /api/flows/{id}/run – Execute flow
 
-GET /api/connections/google/connect – Start Google OAuth
+GET /api/connections/google/connect – Google OAuth start
 
 GET /api/connections/google/callback – OAuth callback
 
 GET /api/connections – List connected services
 
-DELETE /api/connections/{serviceName} – Disconnect a service
+DELETE /api/connections/{serviceName} – Disconnect service
 
-🗺️ Roadmap
- Execution logs UI (per node, per run)
+🗺 Roadmap
+ Execution logs UI (per node/run)
 
- Template flows (1-click create)
+ Template flows (1-click setup)
 
- Conditions & branching UI improvements
+ Advanced branching & conditions
 
  Import/Export flows (JSON)
 
- Retry & circuit breaker policies (Polly)
+ Retry & circuit breaker (Polly)
 
  Background job scheduling (Hangfire)
 
- More actions: Slack, Discord, Trello, Drive
+ New integrations: Slack, Discord, Trello, Drive
 
-📸 Screenshots / Demo (add later)
-<table>
-  <tr>
-    <td><img src="https://github.com/user-attachments/assets/24794b69-622a-4681-a43f-063768bcc5c8" width="400"/></td>
-    <td><img src="https://github.com/user-attachments/assets/a5087206-6599-4a7f-b023-8bdb4264a038" width="400"/></td>
-  </tr>
-  <tr>
-    <td><img src="https://github.com/user-attachments/assets/39856029-cf1e-4289-aba1-1c402c893ea2" width="400"/></td>
-    <td><img src="https://github.com/user-attachments/assets/fc281875-eb75-40ee-89ba-ee4387fe577a" width="400"/></td>
-  </tr>
-  <tr>
-    <td><img src="https://github.com/user-attachments/assets/cba182dd-c3e5-407f-9e04-a664a6bd8dfe" width="400"/></td>
-    <td><img src="https://github.com/user-attachments/assets/641465e0-5659-48e7-b83f-af6179803456" width="400"/></td>
-  </tr>
-</table>
-
-
-
+📸 Screenshots
+<table> <tr> <td><img src="https://github.com/user-attachments/assets/24794b69-622a-4681-a43f-063768bcc5c8" width="400"/></td> <td><img src="https://github.com/user-attachments/assets/a5087206-6599-4a7f-b023-8bdb4264a038" width="400"/></td> </tr> <tr> <td><img src="https://github.com/user-attachments/assets/39856029-cf1e-4289-aba1-1c402c893ea2" width="400"/></td> <td><img src="https://github.com/user-attachments/assets/fc281875-eb75-40ee-89ba-ee4387fe577a" width="400"/></td> </tr> </table>
 🤝 Contributing
 Contributions are welcome!
 
-Fork the repo
+Fork the repository.
 
-Create a feature branch: feat/my-awesome-feature
+Create a feature branch (feat/my-awesome-feature).
 
-Commit your changes
+Commit changes and push.
 
-Open a PR 🎉
+Open a Pull Request 🎉.
 
 📜 License
-Licensed under the MIT License. See LICENSE for details.
+This project is licensed under the MIT License. See LICENSE for details.
 
-🙌 Credits
-React Flow – amazing node editor library
-
-Clerk – simple auth for modern apps
-
-Google APIs – Gmail & Sheets automation
-
-ASP.NET Core – fast, reliable backend
-
-<p align="center"> Made with ❤️ by <b>Flow‑Forge</b> </p> ```
+<p align="center">Made with ❤️ by <b>Flow‑Forge Team</b></p> 
