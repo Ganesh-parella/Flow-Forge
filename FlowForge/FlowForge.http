@@ -1,0 +1,6 @@
+@FlowForge_HostAddress = http://localhost:5296
+
+GET {{FlowForge_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,84 @@
+# .gitignore for a full-stack ASP.NET Core + React application
+
+# General
+# ---------------------------------
+# OS-generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE and Editor specific files
+# ---------------------------------
+# Visual Studio / Rider
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.vs/
+.vs/
+.idea/
+*.project.json
+*.lock.json
+
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# ASP.NET Core Backend
+# ---------------------------------
+# Build artifacts
+bin/
+obj/
+
+# User secrets
+secrets.json
+appsettings.Development.json
+
+
+ #Migrations/
+
+# Rider specific
+.idea/
+*.iml
+modules.xml
+.idea/.idea.FlowForge/
+
+# React Frontend
+# ---------------------------------
+# Node modules
+node_modules/
+
+# Build output
+build/
+dist/
+.next/
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local environment variables
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Dependency lock files (if you want each dev to generate their own)
+# It's often better to commit these, so comment out if you want to share them.
+# package-lock.json
+# yarn.lock
+
+# Test reports
+coverage/
