@@ -82,7 +82,6 @@ Edit
 
 ## 📂 Repo Structure (suggested)
 
-```bash
 Flow-Forge/
 ├── backend/                 # ASP.NET Core 8 Web API
 │   ├── FlowForge.csproj
