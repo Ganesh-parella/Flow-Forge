@@ -65,16 +65,18 @@ Flows can include **delays**, **conditions**, and multiple actions — all power
 - **Execution Logs** — Backend run history for debugging.
 
 ---
-
-## 🧱 Architecture
-
-
+🧱 Architecture
+mermaid
+Copy
+Edit
+```mermaid
 graph TD
     A[Frontend (React + React Flow + Shadcn UI)] -->|JWT (Clerk)| B[Backend (ASP.NET Core 8)]
     B -->|EF Core + MySQL| C[(Database: MySQL)]
     B --> D[Pluggable Flow Engine]
     D --> E[Triggers, Actions, Conditions]
     B --> F[Google OAuth2 (Gmail & Sheets)]
+```
 🛠 Tech Stack
 Layer	Technologies
 Frontend	React 18, React Flow, Shadcn UI, Tailwind CSS
@@ -87,6 +89,7 @@ Integrations	Google APIs (Gmail, Sheets), MimeKit
 bash
 Copy
 Edit
+```bash
 Flow-Forge/
 ├── backend/                 # ASP.NET Core 8 Web API
 │   ├── Controllers/
@@ -109,6 +112,7 @@ Flow-Forge/
 ├── .gitignore
 ├── README.md
 └── LICENSE
+```
 ✅ Prerequisites
 .NET 8 SDK
 
