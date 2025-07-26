@@ -227,13 +227,22 @@ DELETE /api/connections/{serviceName} – Disconnect a service
  More actions: Slack, Discord, Trello, Drive
 
 📸 Screenshots / Demo (add later)
-Add GIFs or images here
+<table>
+  <tr>
+    <td><img src="https://github.com/user-attachments/assets/24794b69-622a-4681-a43f-063768bcc5c8" width="400"/></td>
+    <td><img src="https://github.com/user-attachments/assets/a5087206-6599-4a7f-b023-8bdb4264a038" width="400"/></td>
+  </tr>
+  <tr>
+    <td><img src="https://github.com/user-attachments/assets/39856029-cf1e-4289-aba1-1c402c893ea2" width="400"/></td>
+    <td><img src="https://github.com/user-attachments/assets/fc281875-eb75-40ee-89ba-ee4387fe577a" width="400"/></td>
+  </tr>
+  <tr>
+    <td><img src="https://github.com/user-attachments/assets/cba182dd-c3e5-407f-9e04-a664a6bd8dfe" width="400"/></td>
+    <td><img src="https://github.com/user-attachments/assets/641465e0-5659-48e7-b83f-af6179803456" width="400"/></td>
+  </tr>
+</table>
 
-docs/screenshots/dashboard.png
 
-docs/screenshots/flow-builder.png
-
-docs/screenshots/google-connect.png
 
 🤝 Contributing
 Contributions are welcome!
