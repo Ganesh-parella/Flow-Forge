@@ -69,7 +69,7 @@ Flows can include **delays**, **conditions**, and multiple actions — all power
 mermaid
 Copy
 Edit
-```Bash
+```
 graph TD
     A[Frontend (React + React Flow + Shadcn UI)] -->|JWT (Clerk)| B[Backend (ASP.NET Core 8)]
     B -->|EF Core + MySQL| C[(Database: MySQL)]
@@ -86,33 +86,70 @@ Auth	Clerk (JWT-based authentication)
 Integrations	Google APIs (Gmail, Sheets), MimeKit
 
 📂 Project Structure
-bash
-Copy
-Edit
-```bash
-Flow-Forge/
-├── backend/                 # ASP.NET Core 8 Web API
-│   ├── Controllers/
-│   ├── Models/
-│   ├── DTOs/
-│   ├── Engine/              # FlowEngine, Nodes, Execution logic
-│   ├── Services/
-│   ├── Repositories/
-│   ├── FlowForge.csproj
-│   ├── appsettings.json
-│   └── ...
-├── frontend/                # React + React Flow + Shadcn UI
-│   ├── src/
-│   │   ├── pages/
-│   │   ├── apis/
-│   │   ├── components/
-│   │   └── ...
-│   ├── .env.local
-│   └── vite.config.js
-├── .gitignore
-├── README.md
-└── LICENSE
+
+
+### 🚀 Frontend (React + React Flow + Shadcn UI)
 ```
+📦 flow-forge-frontend
+├── src
+│ ├── components
+│ │ ├── Header.jsx
+│ │ ├── Sidebar.jsx
+│ │ └── NodeTypes
+│ │ ├── TriggerNode.jsx
+│ │ ├── ActionNode.jsx
+│ │ └── ConditionNode.jsx
+│ ├── pages
+│ │ ├── Dashboard.jsx
+│ │ ├── FlowBuilder.jsx
+│ │ └── Connections.jsx
+│ ├── api
+│ │ └── flowApi.js
+│ ├── context
+│ │ └── FlowContext.jsx
+│ ├── App.jsx
+│ ├── main.jsx
+│ └── index.css
+├── public
+│ └── index.html
+├── .env
+├── package.json
+└── vite.config.js
+```
+
+### 🧠 Backend (ASP.NET Core 8 + MySQL)
+
+```
+📦 FlowForge (Backend)
+├── Controllers
+│ ├── FlowController.cs
+│ ├── GmailController.cs
+│ └── GoogleOAuthController.cs
+├── Services
+│ ├── Interfaces
+│ │ ├── IFlowService.cs
+│ │ ├── IGmailService.cs
+│ │ └── IGoogleOAuthService.cs
+│ └── Implementations
+│ ├── FlowService.cs
+│ ├── GmailService.cs
+│ └── GoogleOAuthService.cs
+├── Models
+│ ├── Flow.cs
+│ ├── GmailToken.cs
+│ └── User.cs
+├── DTOs
+│ ├── FlowDto.cs
+│ ├── GmailMessageDto.cs
+│ └── OAuthTokenDto.cs
+├── Data
+│ └── ApplicationDbContext.cs
+├── appsettings.json
+├── Program.cs
+└── FlowForge.csproj
+
+```
+
 ✅ Prerequisites
 .NET 8 SDK
 
