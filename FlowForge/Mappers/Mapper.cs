@@ -1,19 +1,20 @@
-﻿// Helpers/FlowMapper.cs
-using FlowForge.DTOs;
+﻿using FlowForge.Dtos;
+using FlowForge.Models;
+using FlowForge.Dtos;
 using FlowForge.Models;
 
-namespace FlowForge.Helpers
+namespace FlowForge.Mappers
 {
-    public static class FlowMapper
+    public static class Mapper
     {
-        public static FlowResponseDto ToDto(Flow flow)
+        public static FlowResponseDto toFlowResponseDto(Flow flow)
         {
             return new FlowResponseDto
             {
+
                 Id = flow.Id,
                 Name = flow.Name,
                 DefinitionJson = flow.DefinitionJson,
-                ClerkUserId = flow.ClerkUserId,
                 CreatedAt = flow.CreatedAt,
                 UpdatedAt = flow.UpdatedAt
             };

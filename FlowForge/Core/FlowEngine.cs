@@ -1,76 +1,112 @@
-﻿using FlowForge.Core;
+﻿using System.Text.Json;
+using FlowForge.Core.FlowParser.Models;
+using FlowForge.Core.FlowParser;
 using FlowForge.Core.Interfaces;
-using FlowForge.Models;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.Json;
-using System.Threading.Tasks;
+using FlowForge.Core;
 
-namespace FlowForge.Engine
+namespace FlowForge.Core
 {
     public class FlowEngine
     {
-        private readonly IServiceProvider _serviceProvider;
-        private readonly ILogger<FlowEngine> _logger;
-        private readonly IEnumerable<INode> _availableNodes;
+        private IServiceProvider _serviceProvider;
+        private ILogger<FlowEngine> _logger;
+        private IEnumerable<INode> _availableNodes;
+        private DagConvertor _dagConvertor;
+        private TopoSortGenerator _topoSortGenerator;
 
-        public FlowEngine(IServiceProvider serviceProvider, ILogger<FlowEngine> logger, IEnumerable<INode> availableNodes)
+        public FlowEngine(IServiceProvider serviceProvider, ILogger<FlowEngine> logger, IEnumerable<INode> availableNodes, DagConvertor dagConvertor, TopoSortGenerator topoSortGenerator)
         {
             _serviceProvider = serviceProvider;
             _logger = logger;
             _availableNodes = availableNodes;
+            _dagConvertor = dagConvertor;
+            _topoSortGenerator = topoSortGenerator;
         }
-
-        // UPDATED: The RunAsync method now accepts an optional initialPayload dictionary.
-        public async Task RunAsync(ParsedFlow flow, string clerkUserId, Dictionary<string, object> initialPayload = null)
+        public async Task RunFlowAsync(ParsedFlow flow, string clerkUserId, Dictionary<string, object> intialPayLoad = null)
         {
-            // For a manual run, the payload starts empty. For a webhook, it starts with the webhook's data.
-            var payload = initialPayload ?? new Dictionary<string, object>();
-
-            var currentNode = flow.Nodes.FirstOrDefault(n => n.IsTrigger);
-
-            if (currentNode == null)
+            var PayLoad = intialPayLoad ?? new Dictionary<string, object>();
+            Dag dag;
+            try
             {
-                _logger.LogWarning("Flow '{FlowName}' has no trigger node and cannot be run.", flow.FlowName);
+                dag = _dagConvertor.ParsedFlowToDag(flow);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error converting flow to DAG for user {ClerkUserId}", clerkUserId);
+                throw;
+            }
+            await RunFlowAsync(dag, clerkUserId, PayLoad);
+
+        }
+        public async Task RunFlowAsync(Dag dag, string clerkUserId, Dictionary<string, object> intialPayLoad = null)
+        {
+            var PayLoad = intialPayLoad ?? new Dictionary<string, object>();
+            List<ParsedNode> executionOrder;
+            try
+            {
+                executionOrder = _topoSortGenerator.GetTopologicalOrder(dag);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating topological order for DAG for user {ClerkUserId}", clerkUserId);
+                throw;
+            }
+            await RunFlowAsync(executionOrder, dag.Name, clerkUserId, PayLoad);
+        }
+        public async Task RunFlowAsync(List<ParsedNode> nodes, string flowName, string clerkUserId, Dictionary<string, object> intialPayLoad = null)
+        {
+            var payLoad = intialPayLoad ?? new Dictionary<string, object>();
+            if (nodes == null || nodes.Count == 0)
+            {
+                _logger.LogWarning("No nodes to execute in flow {flowName}", flowName);
                 return;
             }
-
-            while (currentNode != null)
+            foreach (var node in nodes)
             {
-                var executor = _availableNodes.FirstOrDefault(n => n.Type == currentNode.Type);
+                var executor = _availableNodes.FirstOrDefault(n => n.Type == node.Type);
 
                 if (executor == null)
                 {
-                    throw new InvalidOperationException($"Node executor for type '{currentNode.Type}' not found.");
+                    throw new InvalidOperationException($"Node executor for type '{node.Type}' not found.");
                 }
+                FlowExecutionContext context = new FlowExecutionContext(clerkUserId, payLoad, ConvertToJsonElement(node.Data));
 
-                // The context now correctly includes the payload from the previous step (or the initial webhook data).
-                var context = new FlowExecutionContext(clerkUserId, payload, ConvertToJsonElement(currentNode.Data));
+                Dictionary<string, object> output;
+                try
+                {
+                    output = await executor.ExecuteAsync(context, _serviceProvider);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex,
+                        "Error executing node {NodeId} (type {NodeType}) in flow {FlowName}",
+                        node.Id, node.Type, flowName);
 
-                var output = await executor.ExecuteAsync(context, _serviceProvider);
-
+                    throw; // stop flow execution
+                }
+                // Merge output payload into current payload
                 if (output != null)
                 {
                     foreach (var kvp in output)
                     {
-                        payload[kvp.Key] = kvp.Value;
+                        payLoad[kvp.Key] = kvp.Value;
                     }
                 }
+                else
+                {
 
-                var nextEdge = flow.Edges.FirstOrDefault(e => e.SourceNodeId == currentNode.Id);
-                currentNode = nextEdge != null ? flow.Nodes.FirstOrDefault(n => n.Id == nextEdge.TargetNodeId) : null;
+                    _logger.LogDebug("Node {NodeId} returned no payload or empty payload.", node.Id);
+                }
+
             }
-
-            _logger.LogInformation("Flow '{FlowName}' complete. Final payload: {@Payload}", flow.FlowName, payload);
+            _logger.LogInformation("Flow '{FlowName}' complete. Final payload: {@Payload}", flowName, payLoad);
+            return;
         }
-
-        private static JsonElement ConvertToJsonElement(Dictionary<string, object> dict)
+        private JsonElement ConvertToJsonElement(object? obj)
         {
-            if (dict == null) return default;
-            var json = JsonSerializer.Serialize(dict);
-            return JsonSerializer.Deserialize<JsonElement>(json);
+            if (obj == null) return default;
+            var json = System.Text.Json.JsonSerializer.Serialize(obj);
+            return System.Text.Json.JsonSerializer.Deserialize<JsonElement>(json);
         }
     }
 }

@@ -68,7 +68,7 @@ function SettingsPanel({ node, updateNodeData, flowId }) {
             <label className="text-xs font-medium">Subject</label>
             <Input value={node.data.subject || ""} onChange={e => updateNodeData(d => ({ ...d, subject: e.target.value }))} placeholder="Your Subject" />
             <label className="text-xs font-medium">Body</label>
-            <Textarea minRows={3} value={node.data.body || ""} onChange={e => updateNodeData(d => ({ ...d, body: e.target.value }))} placeholder="Email content..." />
+           <Textarea rows={3} value={node.data.body || ""} onChange={e => updateNodeData(d => ({ ...d, body: e.target.value }))} placeholder="Email content..." />
           </div>
         )}
         {node.type === "delay-action" && (
@@ -84,7 +84,7 @@ function SettingsPanel({ node, updateNodeData, flowId }) {
             <label className="text-xs font-medium">Sheet Name</label>
             <Input value={node.data.sheetName || ""} onChange={e => updateNodeData(d => ({ ...d, sheetName: e.target.value }))} placeholder="e.g., Sheet1" />
             <label className="text-xs font-medium">Row Values (comma-separated)</label>
-            <Textarea minRows={3} value={node.data.rowValues || ""} onChange={e => updateNodeData(d => ({ ...d, rowValues: e.target.value }))} placeholder="e.g., Value A, {{payload.email}}" />
+            <Textarea rows={3} value={node.data.rowValues || ""} onChange={e => updateNodeData(d => ({ ...d, rowValues: e.target.value }))} placeholder="e.g., Value A, {{payload.email}}" />
           </div>
         )}
       </CardContent>

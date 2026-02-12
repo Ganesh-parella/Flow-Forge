@@ -1,4 +1,4 @@
-﻿namespace FlowForge.DTOs
+﻿namespace FlowForge.Dtos
 {
     public class UserConnectionDto
     {

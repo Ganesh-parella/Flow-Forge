@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using System;
 using System.Collections.Generic;
 using Google.Apis.Auth.OAuth2.Requests;
+using FlowForge.Services.Interfaces;
 
 namespace FlowForge.Controllers
 {
@@ -34,11 +35,12 @@ namespace FlowForge.Controllers
         [HttpGet("google/connect-url")]
         public IActionResult GetGoogleConnectUrl()
         {
-            var clerkUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+            var clerkUserId =
+    User.FindFirstValue(ClaimTypes.NameIdentifier)
+    ?? User.FindFirstValue("sub");
+
             if (string.IsNullOrEmpty(clerkUserId))
-            {
-                return Unauthorized("User not authenticated.");
-            }
+                return Unauthorized("User ID not found in token.");
 
             var redirectUrl = Url.Action(nameof(GoogleCallback), "Connections", null, Request.Scheme);
             var scopes = new List<string>
@@ -96,7 +98,7 @@ namespace FlowForge.Controllers
                 return BadRequest("Refresh token not received from Google.");
             }
 
-            await _connectionService.CreateConnectionAsync(clerkUserId, "Google", token.RefreshToken);
+            await _connectionService.AddOrUpdateConnectionAsync(clerkUserId, "Google", token.RefreshToken);
 
             // Redirect user to frontend connections page
             return Redirect("http://localhost:5173/connections?status=success");
@@ -132,6 +134,21 @@ namespace FlowForge.Controllers
             var hasGoogleConnection = await _connectionService.GetRefreshTokenAsync(clerkUserId, "Google") != null;
 
             return Ok(new { google = hasGoogleConnection });
+        }
+
+        // Updated Route to avoid conflict
+        [HttpGet("{provider}")]
+        public async Task<IActionResult> GetConnection(string provider)
+        {
+            var clerkUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+            if (string.IsNullOrEmpty(clerkUserId))
+            {
+                return Unauthorized("User not authenticated.");
+            }
+
+            var hasConnection = await _connectionService.GetRefreshTokenAsync(clerkUserId, provider) != null;
+
+            return Ok(new { connected = hasConnection });
         }
     }
 }

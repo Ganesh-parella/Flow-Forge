@@ -11,7 +11,7 @@ namespace FlowForge.Core
         public FlowExecutionContext(string clerkUserId, Dictionary<string, object> initialPayload, JsonElement nodeConfiguration)
         {
             ClerkUserId = clerkUserId;
-            Payload = initialPayload ?? new Dictionary<string, object>();
+            Payload = initialPayload;
             NodeConfiguration = nodeConfiguration;
         }
 
@@ -24,5 +24,4 @@ namespace FlowForge.Core
             }
         }
     }
-
 }

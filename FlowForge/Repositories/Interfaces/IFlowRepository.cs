@@ -1,18 +1,14 @@
-﻿using FlowForge.DTOs;
-using FlowForge.Models;
+﻿using FlowForge.Dtos;
 
 namespace FlowForge.Repositories.Interfaces
 {
     public interface IFlowRepository
     {
-        Task<IEnumerable<FlowResponseDto>> GetAllByUserAsync(string clerkUserId);
+        public Task<IEnumerable<FlowResponseDto>> GetAllByUserAsync(string clearkUerId);
+        public Task<FlowResponseDto> GetByIdAsync(string clearkUerName,int id);
+        public Task<FlowResponseDto> CreateFlowAsync(string clearkUerId, CreateFlowDto createFlowDto);
+        public Task<FlowResponseDto> UpdateFlowAsync(string clearkUerId, int id, CreateFlowDto updateFlowDto);
+        public Task<bool> DeleteFlowAsync(string clearkUerId, int id);
 
-        Task<FlowResponseDto?> GetByIdAsync(int id);
-
-        Task<FlowResponseDto> AddAsync(FlowCreateDto dto, string clerkUserId);
-
-        Task<FlowResponseDto?> UpdateAsync(int id, FlowCreateDto dto);
-
-        Task<bool> DeleteAsync(int id);
     }
 }

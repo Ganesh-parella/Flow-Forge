@@ -1,75 +1,75 @@
-﻿using FlowForge.DTOs;
+﻿using FlowForge.Dtos;
+using FlowForge.Mappers;
 using FlowForge.Models;
 using FlowForge.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using FlowForge.Helpers;
 
 namespace FlowForge.Repositories
 {
-    public class FlowRepository : IFlowRepository
+    public class FlowRepository:IFlowRepository
     {
         private readonly AppDbContext _context;
-
         public FlowRepository(AppDbContext context)
         {
             _context = context;
         }
-
-        public async Task<IEnumerable<FlowResponseDto>> GetAllByUserAsync(string clerkUserId)
+        public async Task<IEnumerable<FlowResponseDto>> GetAllByUserAsync(string clearkUerId)
         {
             var flows = await _context.Flows
-                .Where(f => f.ClerkUserId == clerkUserId)
+                .Where(f => f.ClearkUerId == clearkUerId)
                 .ToListAsync();
-
-            return flows.Select(FlowMapper.ToDto);
+            return flows.Select(Mapper.toFlowResponseDto);
         }
-
-        public async Task<FlowResponseDto?> GetByIdAsync(int id)
+        public async Task<FlowResponseDto> GetByIdAsync(string clearkUerName, int id)
         {
-            var flow = await _context.Flows.FindAsync(id);
-            return flow == null ? null : FlowMapper.ToDto(flow);
-        }
-
-        public async Task<FlowResponseDto> AddAsync(FlowCreateDto dto, string clerkUserId)
-        {
-            var flow = new Flow
+            Flow flow = await _context.Flows
+                .FirstOrDefaultAsync(f => f.ClearkUerId == clearkUerName && f.Id == id);
+            if (flow == null)
             {
-                Name = dto.Name,
-                DefinitionJson = dto.DefinitionJson,
-                ClerkUserId = clerkUserId,
+                return null;
+            }
+            return Mapper.toFlowResponseDto(flow);
+        }
+        public async Task<FlowResponseDto> CreateFlowAsync(string clearkUerId, CreateFlowDto createFlowDto)
+        {
+            Flow newFlow = new Flow
+            {
+                ClearkUerId = clearkUerId,
+                Name = createFlowDto.Name,
+                DefinitionJson = createFlowDto.DefinitionJson,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
-
-            _context.Flows.Add(flow);
+            await _context.Flows.AddAsync(newFlow);
             await _context.SaveChangesAsync();
-
-            return FlowMapper.ToDto(flow);
+            return Mapper.toFlowResponseDto(newFlow);
         }
-
-        public async Task<FlowResponseDto?> UpdateAsync(int id, FlowCreateDto dto)
+        public async Task<FlowResponseDto> UpdateFlowAsync(string clearkUerId, int id, CreateFlowDto updateFlowDto)
         {
-            var existing = await _context.Flows.FindAsync(id);
-            if (existing == null) return null;
-
-            existing.Name = dto.Name;
-            existing.DefinitionJson = dto.DefinitionJson;
+            Flow? existing = await _context.Flows
+                .FirstOrDefaultAsync(f => f.ClearkUerId == clearkUerId && f.Id == id);
+            if (existing == null)
+            {
+                return null;
+            }
+            existing.Name = updateFlowDto.Name;
+            existing.DefinitionJson = updateFlowDto.DefinitionJson;
             existing.UpdatedAt = DateTime.UtcNow;
-
             await _context.SaveChangesAsync();
-
-            return FlowMapper.ToDto(existing);
+            return Mapper.toFlowResponseDto(existing);
         }
-
-        public async Task<bool> DeleteAsync(int id)
+        public async Task<bool> DeleteFlowAsync(string clearkUerId, int id)
         {
-            var flow = await _context.Flows.FindAsync(id);
-            if (flow == null) return false;
-
-            _context.Flows.Remove(flow);
+            Flow? existing = await _context.Flows
+                .FirstOrDefaultAsync(f => f.ClearkUerId == clearkUerId && f.Id == id);
+            if (existing == null)
+            {
+                return false;
+            }
+            _context.Flows.Remove(existing);
             await _context.SaveChangesAsync();
-
             return true;
+
         }
     }
 }

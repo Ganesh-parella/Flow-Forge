@@ -16,13 +16,7 @@ using System.Threading.Tasks;
 
 namespace FlowForge.Nodes.Triggers
 {
-    /// <summary>
-    /// Corresponds to the 'trigger' type from the frontend. In a real application,
-    /// the data for this trigger is passed into the FlowEngine by a controller that
-    /// receives an external webhook request.
-    /// </summary>
-    namespace FlowForge.Nodes.Triggers
-    {
+   
         /// <summary>
         /// Corresponds to the 'trigger' type from the frontend. In a real application,
         /// the data for this trigger is passed into the FlowEngine by a controller that
@@ -47,4 +41,4 @@ namespace FlowForge.Nodes.Triggers
             }
         }
     }
-}
+

@@ -80,25 +80,38 @@ function FlowCanvas() {
     event.dataTransfer.dropEffect = "move";
   }, []);
 
-  const onDrop = useCallback(
-    (event) => {
-      event.preventDefault();
-      const bounds = rfWrapper.current.getBoundingClientRect();
-      const payload = event.dataTransfer.getData("application/reactflow");
-      if (!payload) return;
-      const { type, initialData } = JSON.parse(payload);
-      if (type === "trigger" && nodes.some((n) => n.type === "trigger")) {
-        toast.warning("Only one trigger allowed!");
-        return;
-      }
-      const position = rfInstance.project({
-        x: event.clientX - bounds.left,
-        y: event.clientY - bounds.top,
-      });
-      setNodes((nds) => nds.concat({ id: genId(), type, position, data: { ...initialData } }));
-    },
-    [nodes, rfInstance, setNodes]
-  );
+ const onDrop = useCallback(
+  (event) => {
+    event.preventDefault();
+    const bounds = rfWrapper.current.getBoundingClientRect();
+    const payload = event.dataTransfer.getData("application/reactflow");
+    if (!payload) return;
+    const { type, initialData } = JSON.parse(payload);
+
+    // Only allow one trigger
+    if (type === "trigger" && nodes.some((n) => n.type === "trigger")) {
+      toast.warning("Only one trigger allowed!");
+      return;
+    }
+
+    const position = rfInstance.project({
+      x: event.clientX - bounds.left,
+      y: event.clientY - bounds.top,
+    });
+
+    setNodes((nds) =>
+  nds.concat({
+    id: genId(),
+    type,
+    position,
+    data: { ...initialData },
+    Istrigger: type === "trigger" // ✅ mark trigger node as true
+  })
+);
+
+  },
+  [nodes, rfInstance, setNodes]
+);
 
   const onConnect = useCallback(
     (params) => setEdges((eds) => addEdge({ ...params, animated: true }, eds)),
@@ -116,28 +129,50 @@ function FlowCanvas() {
   };
 
   const onSave = async () => {
-    if (!rfInstance || !user) return;
-    const flowObj = rfInstance.toObject();
-    const payload = { name: flowName, definitionJson: JSON.stringify(flowObj) };
-    try {
-      if (flowId) {
-        await updateFlow(flowId, payload);
-        toast.success("Flow updated!");
-        navigate("/flows");
-      } else {
-        const newFlow = await createFlow(payload);
-        toast.success("Flow saved!");
-        if (newFlow?.id) {
-          navigate(`/flow-builder/${newFlow.id}`, { replace: true });
-        } else {
-          toast.error("No ID returned after creation.");
-        }
-      }
-    } catch (err) {
-      console.error("Save failed:", err);
-      toast.error("Failed to save flow.");
-    }
+  if (!rfInstance || !user) {
+    toast.error("React Flow is not initialized or user not logged in.");
+    return;
+  }
+
+  // Get the flow object from React Flow
+  const flowObj = rfInstance.toObject();
+
+  // Safety check: if flowObj is empty, default to empty nodes/edges
+  const safeFlowObj = flowObj || { nodes: [], edges: [] };
+
+  // Ensure flow name is not empty
+  const safeFlowName = flowName.trim() || "Untitled Flow";
+
+  const payload = {
+    name: safeFlowName,
+    definitionJson: JSON.stringify(safeFlowObj),
   };
+
+  try {
+    if (flowId) {
+      // Update existing flow
+      await updateFlow(flowId, payload);
+      toast.success("Flow updated successfully!");
+      navigate("/flows");
+    } else {
+      // Create new flow
+      const newFlow = await createFlow(payload);
+      if (!newFlow?.id) {
+        toast.error("Flow created but no ID returned.");
+        return;
+      }
+      toast.success("Flow created successfully!");
+      navigate(`/flow-builder/${newFlow.id}`, { replace: true });
+    }
+  } catch (err) {
+    console.error("Save failed:", err.response?.data || err.message || err);
+    toast.error(
+      err.response?.data?.message ||
+      "Failed to save flow. Check console for details."
+    );
+  }
+};
+
 
   const onRun = async () => {
     if (!flowId) {

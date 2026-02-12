@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FlowForge.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250725081025_AddUserConnectio")]
-    partial class AddUserConnectio
+    [Migration("20260202164804_UpdatedModels")]
+    partial class UpdatedModels
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -33,7 +33,7 @@ namespace FlowForge.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("ClerkUserId")
+                    b.Property<string>("ClearkUerId")
                         .IsRequired()
                         .HasColumnType("longtext");
 

@@ -8,6 +8,9 @@ using Google.Apis.Services;
 using MimeKit;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 
 namespace FlowForge.Nodes.Actions
 {
@@ -15,16 +18,16 @@ namespace FlowForge.Nodes.Actions
     /// Corresponds to the 'gmail-send-action' type.
     /// This is the final, functional implementation.
     /// </summary>
-
     public class GmailSendActionNode : IAction
     {
         public string Type => "gmail-send-action";
 
+        // Fix: Made properties nullable to prevent "Non-nullable property must contain a non-null value" warnings
         private class NodeData
         {
-            public string To { get; set; }
-            public string Subject { get; set; }
-            public string Body { get; set; }
+            public string? To { get; set; }
+            public string? Subject { get; set; }
+            public string? Body { get; set; }
         }
 
         public async Task<Dictionary<string, object>> ExecuteAsync(FlowExecutionContext context, IServiceProvider services)
@@ -34,9 +37,11 @@ namespace FlowForge.Nodes.Actions
             var configuration = services.GetRequiredService<IConfiguration>();
 
             var config = context.NodeConfiguration.Deserialize<NodeData>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            if (config == null)
+
+            // Fix: Add explicit validation since properties are now nullable
+            if (config == null || string.IsNullOrWhiteSpace(config.To))
             {
-                throw new InvalidOperationException("Gmail action configuration is missing or invalid.");
+                throw new InvalidOperationException("Gmail action configuration is invalid: 'To' address is required.");
             }
 
             var refreshToken = await connectionService.GetRefreshTokenAsync(context.ClerkUserId, "Google");
@@ -45,11 +50,10 @@ namespace FlowForge.Nodes.Actions
                 throw new InvalidOperationException($"User {context.ClerkUserId} has not connected their Google account.");
             }
 
-            // --- THIS IS THE FIX ---
             // 1. Apply the templating logic to the subject and body.
-            string finalSubject = ReplacePlaceholders(config.Subject, context.Payload);
-            string finalBody = ReplacePlaceholders(config.Body, context.Payload);
-            // --------------------
+            // Fix: Handle nulls safely using ?? string.Empty
+            string finalSubject = ReplacePlaceholders(config.Subject ?? string.Empty, context.Payload);
+            string finalBody = ReplacePlaceholders(config.Body ?? string.Empty, context.Payload);
 
             logger.LogInformation("Attempting to send email for user {ClerkUserId} to {Recipient}", context.ClerkUserId, config.To);
 
@@ -70,7 +74,6 @@ namespace FlowForge.Nodes.Actions
 
             var message = new MimeMessage();
             message.To.Add(MailboxAddress.Parse(config.To));
-            // 2. Use the final, processed versions.
             message.Subject = finalSubject;
             message.Body = new TextPart("plain") { Text = finalBody };
 
@@ -99,12 +102,9 @@ namespace FlowForge.Nodes.Actions
             // Use a regular expression to find all occurrences of {{payload.someKey}}
             return Regex.Replace(template, @"\{\{payload\.(\w+)\}\}", match =>
             {
-                // Get the key from the match (e.g., "customerName")
                 string key = match.Groups[1].Value;
 
-                // If the key exists in our payload, replace it with the value.
-                // Otherwise, replace it with an empty string.
-                if (payload.TryGetValue(key, out object value))
+                if (payload.TryGetValue(key, out object? value))
                 {
                     return value?.ToString() ?? string.Empty;
                 }

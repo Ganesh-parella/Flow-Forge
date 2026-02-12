@@ -30,7 +30,7 @@ namespace FlowForge.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("ClerkUserId")
+                    b.Property<string>("ClearkUerId")
                         .IsRequired()
                         .HasColumnType("longtext");
 

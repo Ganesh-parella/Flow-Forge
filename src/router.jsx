@@ -23,7 +23,7 @@ const router = createBrowserRouter([
       { path: '/flow-builder/:id', element: <FlowBuilder /> },
       { path: '/flow-builder', element: <FlowBuilder /> },
       {path:'/trigger-demo',element:<TriggerDemoPage/>},
-      { path: '*', element: <div>404</div> },
+      { path: '*', element: <FlowsPage/> },
     ],
   },
 ]);
