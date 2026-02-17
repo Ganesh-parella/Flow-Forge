@@ -51,6 +51,12 @@ builder.Services.AddSwaggerGen(options =>
         }
     });
 });
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.ListenAnyIP(
+        int.Parse(Environment.GetEnvironmentVariable("PORT") ?? "8080"));
+});
+
 
 // Database configuration
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
