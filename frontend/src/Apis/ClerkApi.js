@@ -7,8 +7,8 @@ const useApiClient = () => {
 
   // Create an axios instance with a base URL from environment variables.
   // In your .env file, you would have: REACT_APP_API_BASE_URL=https://localhost:7025/api
-  const apiClient = axios.create({
-    baseURL:  'https://localhost:7025/api',
+ const apiClient = axios.create({
+    baseURL: import.meta.env.VITE_API_BASE_URL || 'https://localhost:7025/api',
   });
 
   // Use an interceptor to add the JWT token from Clerk to every request.
