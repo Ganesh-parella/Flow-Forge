@@ -12,7 +12,6 @@ using FlowForge.Services;
 using FlowForge.Models;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-// using FlowForge.Core.Extensions; // Corrected typo from Excetentions to Extensions if renamed, otherwise keep original
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,7 +23,6 @@ builder.Services.AddDataProtection();
 // Swagger Configuration
 builder.Services.AddSwaggerGen(options =>
 {
-    // 1. Define the security scheme
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -35,7 +33,6 @@ builder.Services.AddSwaggerGen(options =>
         Description = "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\""
     });
 
-    // 2. Make Swagger use the Bearer token
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -51,35 +48,47 @@ builder.Services.AddSwaggerGen(options =>
         }
     });
 });
+
 builder.WebHost.ConfigureKestrel(serverOptions =>
 {
     serverOptions.ListenAnyIP(
         int.Parse(Environment.GetEnvironmentVariable("PORT") ?? "8080"));
 });
 
-
 // Database configuration
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrEmpty(connectionString))
 {
-    // Fallback or throw based on your preference. Throwing ensures you don't run with a bad config.
     throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 }
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(
-    connectionString,
-    new MySqlServerVersion(new Version(8, 0, 36))
-)
-    .EnableSensitiveDataLogging() // Helpful for debugging startup errors
+        connectionString,
+        new MySqlServerVersion(new Version(8, 0, 36)),
+        mySqlOptions =>
+        {
+            // FIX 1: Enable retry logic for the cross-cloud connection (Render -> Railway)
+            mySqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 10,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorNumbersToAdd: null);
+        }
+    )
+    .EnableSensitiveDataLogging()
     .EnableDetailedErrors()
 );
 
+// CORS Policy
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend",
         policy => policy
-            .WithOrigins("http://localhost:5173", "https://your-frontend-domain.com") // Add your frontend URLs here
+            // FIX 2: Added your live Vercel production domain
+            .WithOrigins(
+                "http://localhost:5173",
+                "https://flow-forge-dusky.vercel.app"
+            )
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials());
@@ -90,12 +99,8 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-
-        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.Never;// do not ignore any fields
-        
-
+        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.Never;
     });
-
 
 builder.Services.AddAuthentication(options =>
 {
@@ -115,7 +120,6 @@ builder.Services.AddAuthentication(options =>
 });
 
 // App-specific services
-// Ensure all these implementations exist and implement the interface correctly
 builder.Services.AddScoped<IFlowService, FlowService>();
 builder.Services.AddScoped<IFlowRunService, FlowRunService>();
 builder.Services.AddScoped<IFlowRepository, FlowRepository>();
@@ -124,13 +128,10 @@ builder.Services.AddScoped<IFlowInstanceRepository, FlowInstanceRepository>();
 builder.Services.AddScoped<IConnectionRepository, ConnectionRepository>();
 builder.Services.AddScoped<IConnectionService, ConnectionService>();
 builder.Services.AddScoped<FlowParser>();
-builder.Services.AddScoped<DagConvertor>(); // Verify if this class exists in your new project structure
-builder.Services.AddScoped<TopoSortGenerator>(); // Verify if this class exists
+builder.Services.AddScoped<DagConvertor>();
+builder.Services.AddScoped<TopoSortGenerator>();
 builder.Services.AddScoped<FlowEngine>();
 builder.Services.AddNodeServices();
-
-// If you have a custom extension method for Node services, ensure the namespace is correct
-// builder.Services.AddNodeServices(); 
 
 var app = builder.Build();
 
@@ -141,6 +142,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// Important order: Cors -> Auth
 app.UseCors("AllowFrontend");
 app.UseHttpsRedirection();
 
@@ -149,9 +151,11 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-using(var scope=app.Services.CreateScope())
+// Apply Migrations on Startup
+using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
 }
+
 app.Run();
