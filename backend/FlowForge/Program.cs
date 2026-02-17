@@ -12,6 +12,7 @@ using FlowForge.Services;
 using FlowForge.Models;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -143,6 +144,10 @@ if (app.Environment.IsDevelopment())
 }
 
 // Important order: Cors -> Auth
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
 app.UseCors("AllowFrontend");
 app.UseHttpsRedirection();
 

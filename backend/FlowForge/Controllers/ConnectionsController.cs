@@ -12,7 +12,6 @@ using System.Threading.Tasks;
 using System;
 using System.Collections.Generic;
 using Google.Apis.Auth.OAuth2.Requests;
-using FlowForge.Services.Interfaces;
 
 namespace FlowForge.Controllers
 {
@@ -25,6 +24,10 @@ namespace FlowForge.Controllers
         private readonly IConnectionService _connectionService;
         private readonly ILogger<ConnectionsController> _logger;
 
+        // HARDCODED REDIRECT URI for Production (Must match Google Cloud Console exactly)
+        private const string GoogleRedirectUri = "https://flow-forge-2txl.onrender.com/api/Connections/google/callback";
+        private const string FrontendSuccessUrl = "https://flow-forge-dusky.vercel.app/connections?status=success";
+
         public ConnectionsController(IConfiguration configuration, IConnectionService connectionService, ILogger<ConnectionsController> logger)
         {
             _configuration = configuration;
@@ -35,14 +38,11 @@ namespace FlowForge.Controllers
         [HttpGet("google/connect-url")]
         public IActionResult GetGoogleConnectUrl()
         {
-            var clerkUserId =
-    User.FindFirstValue(ClaimTypes.NameIdentifier)
-    ?? User.FindFirstValue("sub");
+            var clerkUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
 
             if (string.IsNullOrEmpty(clerkUserId))
                 return Unauthorized("User ID not found in token.");
 
-            var redirectUrl = Url.Action(nameof(GoogleCallback), "Connections", null, Request.Scheme);
             var scopes = new List<string>
             {
                 GmailService.Scope.GmailSend,
@@ -52,10 +52,10 @@ namespace FlowForge.Controllers
             var request = new GoogleAuthorizationCodeRequestUrl(new Uri("https://accounts.google.com/o/oauth2/auth"))
             {
                 ClientId = _configuration["Google:ClientId"],
-                RedirectUri = redirectUrl,
+                RedirectUri = GoogleRedirectUri, // Using hardcoded HTTPS URI
                 Scope = string.Join(" ", scopes),
                 AccessType = "offline",
-                Prompt = "consent",  // ensures a refresh token
+                Prompt = "consent", // Ensures a refresh token is provided
                 State = clerkUserId,
             };
 
@@ -73,7 +73,6 @@ namespace FlowForge.Controllers
                 return BadRequest("State missing.");
             }
 
-            var redirectUrl = Url.Action(nameof(GoogleCallback), "Connections", null, Request.Scheme);
             var scopes = new List<string>
             {
                 GmailService.Scope.GmailSend,
@@ -90,35 +89,35 @@ namespace FlowForge.Controllers
                 Scopes = scopes
             });
 
-            var token = await flow.ExchangeCodeForTokenAsync(clerkUserId, code, redirectUrl, CancellationToken.None);
-
-            if (string.IsNullOrEmpty(token.RefreshToken))
+            try
             {
-                _logger.LogError("No refresh token received from Google for user {ClerkUserId}.", clerkUserId);
-                return BadRequest("Refresh token not received from Google.");
+                var token = await flow.ExchangeCodeForTokenAsync(clerkUserId, code, GoogleRedirectUri, CancellationToken.None);
+
+                if (string.IsNullOrEmpty(token.RefreshToken))
+                {
+                    _logger.LogError("No refresh token received from Google for user {ClerkUserId}. User might need to revoke access and try again.", clerkUserId);
+                    return BadRequest("Refresh token not received. Please remove 'FlowForge' from your Google Security settings and try again.");
+                }
+
+                await _connectionService.AddOrUpdateConnectionAsync(clerkUserId, "Google", token.RefreshToken);
+
+                // Redirect user to live Vercel frontend connections page
+                return Redirect(FrontendSuccessUrl);
             }
-
-            await _connectionService.AddOrUpdateConnectionAsync(clerkUserId, "Google", token.RefreshToken);
-
-            // Redirect user to frontend connections page
-            return Redirect("http://localhost:5173/connections?status=success");
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exchanging code for token for user {ClerkUserId}", clerkUserId);
+                return StatusCode(500, "Internal server error during Google authentication.");
+            }
         }
 
         [HttpDelete("google/disconnect")]
         public async Task<IActionResult> DisconnectGoogle()
         {
             var clerkUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-            if (string.IsNullOrEmpty(clerkUserId))
-            {
-                return Unauthorized("User not authenticated.");
-            }
+            if (string.IsNullOrEmpty(clerkUserId)) return Unauthorized();
 
             var deleted = await _connectionService.DeleteConnectionAsync(clerkUserId, "Google");
-            if (!deleted)
-            {
-                _logger.LogWarning("Attempted to delete non-existent Google connection for user {ClerkUserId}.", clerkUserId);
-            }
-
             return Ok(new { message = "Google connection removed successfully." });
         }
 
@@ -126,29 +125,10 @@ namespace FlowForge.Controllers
         public async Task<IActionResult> GetConnections()
         {
             var clerkUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-            if (string.IsNullOrEmpty(clerkUserId))
-            {
-                return Unauthorized("User not authenticated.");
-            }
+            if (string.IsNullOrEmpty(clerkUserId)) return Unauthorized();
 
             var hasGoogleConnection = await _connectionService.GetRefreshTokenAsync(clerkUserId, "Google") != null;
-
             return Ok(new { google = hasGoogleConnection });
-        }
-
-        // Updated Route to avoid conflict
-        [HttpGet("{provider}")]
-        public async Task<IActionResult> GetConnection(string provider)
-        {
-            var clerkUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-            if (string.IsNullOrEmpty(clerkUserId))
-            {
-                return Unauthorized("User not authenticated.");
-            }
-
-            var hasConnection = await _connectionService.GetRefreshTokenAsync(clerkUserId, provider) != null;
-
-            return Ok(new { connected = hasConnection });
         }
     }
 }
