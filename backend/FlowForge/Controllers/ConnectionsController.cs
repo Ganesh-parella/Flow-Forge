@@ -26,7 +26,7 @@ namespace FlowForge.Controllers
 
         // HARDCODED REDIRECT URI for Production (Must match Google Cloud Console exactly)
         private const string GoogleRedirectUri = "https://flow-forge-2txl.onrender.com/api/Connections/google/callback";
-        private const string FrontendSuccessUrl = "https://flow-forge-dusky.vercel.app/connections?status=success";
+        private const string FrontendSuccessUrl = "https://flow-forge-dusky.vercel.app/integrations";
 
         public ConnectionsController(IConfiguration configuration, IConnectionService connectionService, ILogger<ConnectionsController> logger)
         {

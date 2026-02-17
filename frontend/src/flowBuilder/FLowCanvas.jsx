@@ -22,7 +22,7 @@ import {
 } from "./nodes";
 import { genId } from "./utils";
 import { useFlowApi } from "../Apis/flowApi";
-import { Trash2, Save, Play } from "lucide-react";
+import { Trash2, Save, Play, Menu } from "lucide-react"; // FIX: Imported Menu icon
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -35,6 +35,7 @@ const nodeTypes = {
 };
 
 function FlowCanvas() {
+  // ... (Keep all your existing state and hook logic exactly the same) ...
   const rfWrapper = useRef(null);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -68,10 +69,7 @@ function FlowCanvas() {
   }, [flowId]);
 
   const onDragStart = (event, nodeType, initialData) => {
-    event.dataTransfer.setData(
-      "application/reactflow",
-      JSON.stringify({ type: nodeType, initialData })
-    );
+    event.dataTransfer.setData("application/reactflow", JSON.stringify({ type: nodeType, initialData }));
     event.dataTransfer.effectAllowed = "move";
   };
 
@@ -80,15 +78,13 @@ function FlowCanvas() {
     event.dataTransfer.dropEffect = "move";
   }, []);
 
- const onDrop = useCallback(
-  (event) => {
+  const onDrop = useCallback((event) => {
     event.preventDefault();
     const bounds = rfWrapper.current.getBoundingClientRect();
     const payload = event.dataTransfer.getData("application/reactflow");
     if (!payload) return;
     const { type, initialData } = JSON.parse(payload);
 
-    // Only allow one trigger
     if (type === "trigger" && nodes.some((n) => n.type === "trigger")) {
       toast.warning("Only one trigger allowed!");
       return;
@@ -99,25 +95,12 @@ function FlowCanvas() {
       y: event.clientY - bounds.top,
     });
 
-    setNodes((nds) =>
-  nds.concat({
-    id: genId(),
-    type,
-    position,
-    data: { ...initialData },
-    Istrigger: type === "trigger" // ✅ mark trigger node as true
-  })
-);
+    setNodes((nds) => nds.concat({
+      id: genId(), type, position, data: { ...initialData }, Istrigger: type === "trigger"
+    }));
+  }, [nodes, rfInstance, setNodes]);
 
-  },
-  [nodes, rfInstance, setNodes]
-);
-
-  const onConnect = useCallback(
-    (params) => setEdges((eds) => addEdge({ ...params, animated: true }, eds)),
-    [setEdges]
-  );
-
+  const onConnect = useCallback((params) => setEdges((eds) => addEdge({ ...params, animated: true }, eds)), [setEdges]);
   const onNodeClick = (_, node) => setSelectedNode(node);
   const onPaneClick = () => setSelectedNode(null);
 
@@ -129,124 +112,91 @@ function FlowCanvas() {
   };
 
   const onSave = async () => {
-  if (!rfInstance || !user) {
-    toast.error("React Flow is not initialized or user not logged in.");
-    return;
-  }
+    if (!rfInstance || !user) return toast.error("Not ready.");
+    const flowObj = rfInstance.toObject() || { nodes: [], edges: [] };
+    const payload = { name: flowName.trim() || "Untitled Flow", definitionJson: JSON.stringify(flowObj) };
 
-  // Get the flow object from React Flow
-  const flowObj = rfInstance.toObject();
-
-  // Safety check: if flowObj is empty, default to empty nodes/edges
-  const safeFlowObj = flowObj || { nodes: [], edges: [] };
-
-  // Ensure flow name is not empty
-  const safeFlowName = flowName.trim() || "Untitled Flow";
-
-  const payload = {
-    name: safeFlowName,
-    definitionJson: JSON.stringify(safeFlowObj),
+    try {
+      if (flowId) {
+        await updateFlow(flowId, payload);
+        toast.success("Flow updated!");
+      } else {
+        const newFlow = await createFlow(payload);
+        toast.success("Flow created!");
+        navigate(`/flow-builder/${newFlow.id}`, { replace: true });
+      }
+    } catch (err) {
+      toast.error("Failed to save flow.");
+    }
   };
 
-  try {
-    if (flowId) {
-      // Update existing flow
-      await updateFlow(flowId, payload);
-      toast.success("Flow updated successfully!");
-      navigate("/flows");
-    } else {
-      // Create new flow
-      const newFlow = await createFlow(payload);
-      if (!newFlow?.id) {
-        toast.error("Flow created but no ID returned.");
-        return;
-      }
-      toast.success("Flow created successfully!");
-      navigate(`/flow-builder/${newFlow.id}`, { replace: true });
-    }
-  } catch (err) {
-    console.error("Save failed:", err.response?.data || err.message || err);
-    toast.error(
-      err.response?.data?.message ||
-      "Failed to save flow. Check console for details."
-    );
-  }
-};
-
-
   const onRun = async () => {
-    if (!flowId) {
-      toast.error("Please save the flow before running it.");
-      return;
-    }
-    const toastId = toast.loading("Running flow...");
+    if (!flowId) return toast.error("Save first.");
+    const toastId = toast.loading("Running...");
     try {
       await runFlow(flowId);
-      toast.success(`Flow "${flowName}" execution started!`, { id: toastId });
-    } catch (err) {
-      toast.error("Failed to run flow.", { id: toastId });
-      console.error(err);
+      toast.success("Execution started!", { id: toastId });
+    } catch {
+      toast.error("Failed to run.", { id: toastId });
     }
   };
 
   const updateNodeData = (mutator) => {
     if (!selectedNode) return;
     const updatedData = mutator(selectedNode.data);
-    setNodes((nds) =>
-      nds.map((n) => (n.id === selectedNode.id ? { ...n, data: updatedData } : n))
-    );
+    setNodes((nds) => nds.map((n) => (n.id === selectedNode.id ? { ...n, data: updatedData } : n)));
     setSelectedNode((prev) => ({ ...prev, data: updatedData }));
   };
 
   return (
-    <div className="flex h-full w-full min-h-screen bg-background">
+    <div className="flex h-full w-full min-h-[calc(100vh-80px)] bg-background">
       <NodeLibrarySidebar onDragStart={onDragStart} open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div
-        className="flex-1 relative overflow-hidden pb-20" // Ensures bottom strip is gone
-        ref={rfWrapper}
-        tabIndex={0}
-        aria-label="Flow builder canvas"
-      >
+      
+      <div className="flex-1 relative overflow-hidden pb-20" ref={rfWrapper}>
         <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          nodeTypes={nodeTypes}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onInit={setRfInstance}
-          onConnect={onConnect}
-          onDrop={onDrop}
-          onDragOver={onDragOver}
-          onNodeClick={onNodeClick}
-          onPaneClick={onPaneClick}
-          fitView
+          nodes={nodes} edges={edges} nodeTypes={nodeTypes}
+          onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
+          onInit={setRfInstance} onConnect={onConnect} onDrop={onDrop}
+          onDragOver={onDragOver} onNodeClick={onNodeClick} onPaneClick={onPaneClick} fitView
         >
-          <MiniMap className="rounded bg-white shadow" />
+          <MiniMap className="rounded bg-white shadow hidden sm:block" />
           <Background variant="dots" gap={14} size={1} />
-          <Controls />
+          <Controls className="mb-16 sm:mb-0" />
         </ReactFlow>
 
-        {/* Floating Save / Run / Delete controls */}
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 flex gap-2 z-40 bg-white/80 rounded-xl px-4 py-2 shadow border items-center">
-          <Input
-            className="w-64"
-            value={flowName}
-            onChange={(e) => setFlowName(e.target.value)}
-            aria-label="Flow name"
-          />
-          <Button onClick={onSave}>
-            <Save className="w-4 h-4 mr-1" /> Save
-          </Button>
-          {flowId && (
-            <Button variant="secondary" onClick={onRun}>
-              <Play className="w-4 h-4 mr-1" /> Run
+        {/* FIX: Responsive Floating Controls */}
+        <div className="absolute top-4 left-2 right-2 sm:left-1/2 sm:-translate-x-1/2 sm:right-auto flex flex-col sm:flex-row gap-2 z-40 bg-white/90 sm:bg-white/80 rounded-xl p-2 shadow border">
+          
+          {/* Top row on mobile: Menu button & Input */}
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Button variant="outline" size="icon" className="md:hidden shrink-0" onClick={() => setSidebarOpen(true)}>
+              <Menu className="w-4 h-4" />
             </Button>
-          )}
-          {selectedNode && (
-            <Button variant="destructive" onClick={deleteSelectedNode}>
-              <Trash2 className="w-4 h-4 mr-1" /> Delete
+            <Input
+              className="flex-1 sm:w-64 h-9"
+              value={flowName}
+              onChange={(e) => setFlowName(e.target.value)}
+              placeholder="Flow Name"
+            />
+          </div>
+
+          {/* Bottom row on mobile: Action buttons */}
+          <div className="flex gap-2 w-full sm:w-auto justify-end">
+            <Button size="sm" onClick={onSave} className="flex-1 sm:flex-none">
+              <Save className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">Save</span>
             </Button>
-          )}
+            {flowId && (
+              <Button size="sm" variant="secondary" onClick={onRun} className="flex-1 sm:flex-none">
+                <Play className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">Run</span>
+              </Button>
+            )}
+            {selectedNode && (
+              <Button size="sm" variant="destructive" onClick={deleteSelectedNode} className="flex-1 sm:flex-none">
+                <Trash2 className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">Delete</span>
+              </Button>
+            )}
+          </div>
+
         </div>
 
         {/* Node settings panel */}
