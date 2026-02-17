@@ -68,9 +68,9 @@ if (string.IsNullOrEmpty(connectionString))
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(
-        connectionString,
-        ServerVersion.AutoDetect(connectionString)
-    )
+    connectionString,
+    new MySqlServerVersion(new Version(8, 0, 36))
+)
     .EnableSensitiveDataLogging() // Helpful for debugging startup errors
     .EnableDetailedErrors()
 );
