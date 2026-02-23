@@ -39,7 +39,7 @@ export default function FlowsPage() {
     } finally {
       setLoading(false);
     }
-  }, [getFlowsByUser]);
+  }, []);
 
   useEffect(() => {
     if (isLoaded && isSignedIn) {
@@ -47,7 +47,7 @@ export default function FlowsPage() {
     } else if (isLoaded && !isSignedIn) {
       setLoading(false);
     }
-  }, [isLoaded, isSignedIn, fetchFlows]);
+  }, [isLoaded, isSignedIn]);
 
   /* ---------------- DELETE ---------------- */
   const confirmDelete = (flow) => {
