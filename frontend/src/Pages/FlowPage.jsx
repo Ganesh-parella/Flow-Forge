@@ -13,10 +13,13 @@ export default function FlowsPage() {
   const { isLoaded, isSignedIn } = useUser();
   const navigate = useNavigate();
 
+  /* ---------------- STATE ---------------- */
+
   const [flows, setFlows] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [selectedFlow, setSelectedFlow] = useState(null);
+
   const [deletingFlowId, setDeletingFlowId] = useState(null);
   const [runningFlowId, setRunningFlowId] = useState(null);
 
@@ -29,11 +32,12 @@ export default function FlowsPage() {
   const [creatingFlow, setCreatingFlow] = useState(false);
 
   /* ---------------- FETCH FLOWS ---------------- */
+
   const fetchFlows = useCallback(async () => {
-    setLoading(true);
     try {
+      setLoading(true);
       const data = await getFlowsByUser();
-      setFlows(data || []);
+      setFlows(data ?? []);
     } catch (error) {
       console.error("Error fetching flows:", error);
     } finally {
@@ -42,101 +46,108 @@ export default function FlowsPage() {
   }, []);
 
   useEffect(() => {
-    if (isLoaded && isSignedIn) {
+    if (!isLoaded) return;
+
+    if (isSignedIn) {
       fetchFlows();
-    } else if (isLoaded && !isSignedIn) {
+    } else {
       setLoading(false);
+      setFlows([]);
     }
   }, [isLoaded, isSignedIn]);
 
+  /* ---------------- EDIT ---------------- */
+
+  const handleEdit = useCallback(
+    (flow) => {
+      navigate(`/flow-builder/${flow.id}`);
+    },
+    [navigate]
+  );
+
   /* ---------------- DELETE ---------------- */
-  const confirmDelete = (flow) => {
+
+  const confirmDelete = useCallback((flow) => {
     setSelectedFlow(flow);
     setDeleteDialogOpen(true);
-  };
+  }, []);
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     if (!selectedFlow?.id) return;
 
-    setDeletingFlowId(selectedFlow.id);
-
     try {
+      setDeletingFlowId(selectedFlow.id);
       await deleteFlow(selectedFlow.id);
-      setDeleteDialogOpen(false);
-      setSelectedFlow(null);
       await fetchFlows();
     } catch (err) {
       console.error("Delete failed:", err);
     } finally {
       setDeletingFlowId(null);
+      setDeleteDialogOpen(false);
+      setSelectedFlow(null);
     }
-  };
+  }, [selectedFlow, deleteFlow, fetchFlows]);
 
   /* ---------------- RUN ---------------- */
-  const handleRun = async (flow) => {
-    setRunningFlowId(flow.id);
-    try {
-      await runFlow(flow.id);
-      setRunMessage(`Flow "${flow.name || flow.id}" executed successfully!`);
-    } catch (err) {
-      console.error("Run failed:", err);
-      setRunMessage(`Failed to run flow "${flow.name || flow.id}".`);
-    } finally {
-      setRunDialogOpen(true);
-      setRunningFlowId(null);
-    }
-  };
 
-  /* ---------------- EDIT ---------------- */
-  const handleEdit = (flow) => {
-    navigate(`/flow-builder/${flow.id}`);
-  };
+  const handleRun = useCallback(
+    async (flow) => {
+      try {
+        setRunningFlowId(flow.id);
+        await runFlow(flow.id);
+        setRunMessage(
+          `Flow "${flow.name || flow.id}" executed successfully!`
+        );
+      } catch (err) {
+        console.error("Run failed:", err);
+        setRunMessage(
+          `Failed to run flow "${flow.name || flow.id}".`
+        );
+      } finally {
+        setRunningFlowId(null);
+        setRunDialogOpen(true);
+      }
+    },
+    [runFlow]
+  );
 
   /* ---------------- CREATE ---------------- */
-  const handleCreateFlow = async () => {
+
+  const handleCreateFlow = useCallback(async () => {
     if (!newFlowName.trim()) return;
 
-    setCreatingFlow(true);
     try {
-      const flow = await createFlow({ name: newFlowName.trim() });
+      setCreatingFlow(true);
+
+      const flow = await createFlow({
+        name: newFlowName.trim(),
+      });
 
       if (!flow?.id) {
         throw new Error("CreateFlow did not return an id.");
       }
 
+      await fetchFlows();
+
       setCreateDialogOpen(false);
       setNewFlowName("");
-      await fetchFlows();
+
       navigate(`/flow-builder/${flow.id}`);
     } catch (err) {
       console.error("Create flow failed:", err);
     } finally {
       setCreatingFlow(false);
     }
-  };
+  }, [newFlowName, createFlow, fetchFlows, navigate]);
+
+  /* ---------------- RENDER ---------------- */
 
   return (
     <div className="min-h-screen flex bg-background">
-
-      {/* Sidebar */}
       <Sidebar />
 
       <div className="flex-1 flex flex-col">
-
-        <main
-          className="
-            flex-1
-            px-4
-            py-6
-            sm:px-6
-            md:px-10
-            max-w-7xl
-            mx-auto
-            w-full
-          "
-        >
-
-          {/* Header */}
+        <main className="flex-1 px-4 py-6 sm:px-6 md:px-10 max-w-7xl mx-auto w-full">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
               Your Flows
@@ -157,29 +168,16 @@ export default function FlowsPage() {
 
         {/* Floating Create Button */}
         <button
-          className="
-            fixed
-            bottom-6
-            right-6
-            sm:bottom-8
-            sm:right-8
-            z-30
-            shadow-xl
-            bg-primary
-            text-white
-            hover:bg-primary/90
-            h-14
-            w-14
-            rounded-full
-            flex
-            items-center
-            justify-center
-            transition-all
-            focus:ring-2
-            focus:ring-primary
-          "
-          aria-label="Create Flow"
           onClick={() => setCreateDialogOpen(true)}
+          aria-label="Create Flow"
+          className="
+            fixed bottom-6 right-6 sm:bottom-8 sm:right-8
+            z-30 shadow-xl
+            bg-primary text-white hover:bg-primary/90
+            h-14 w-14 rounded-full
+            flex items-center justify-center
+            transition-all focus:ring-2 focus:ring-primary
+          "
         >
           <Plus className="w-6 h-6" />
         </button>
@@ -199,7 +197,9 @@ export default function FlowsPage() {
           onClose={() => setDeleteDialogOpen(false)}
           onConfirm={handleDelete}
           isLoading={deletingFlowId === selectedFlow?.id}
-          flowName={selectedFlow?.name || `Flow ${selectedFlow?.id}`}
+          flowName={
+            selectedFlow?.name || `Flow ${selectedFlow?.id}`
+          }
         />
 
         <RunDialog
@@ -207,7 +207,6 @@ export default function FlowsPage() {
           onClose={() => setRunDialogOpen(false)}
           message={runMessage}
         />
-
       </div>
     </div>
   );
