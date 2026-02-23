@@ -1,22 +1,21 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useFlowApi } from "../Apis/flowApi";
 import { useUser } from "@clerk/clerk-react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import Sidebar from "../Flows/Sidebar";
 import FlowsList from "../Flows/FlowList";
 import { DeleteDialog, RunDialog, CreateDialog } from "../Flows/Dialog";
 import { Plus } from "lucide-react";
+
 export default function FlowsPage() {
   const { getFlowsByUser, deleteFlow, runFlow, createFlow } = useFlowApi();
   const { isLoaded, isSignedIn } = useUser();
 
   const [flows, setFlows] = useState([]);
   const [loading, setLoading] = useState(true);
-
   const [deletingFlowId, setDeletingFlowId] = useState(null);
   const [runningFlowId, setRunningFlowId] = useState(null);
-
   const [selectedFlow, setSelectedFlow] = useState(null);
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -28,7 +27,6 @@ export default function FlowsPage() {
   const [creatingFlow, setCreatingFlow] = useState(false);
 
   const navigate = useNavigate();
-  const location = useLocation();
 
   const fetchFlows = useCallback(async () => {
     setLoading(true);
@@ -40,12 +38,12 @@ export default function FlowsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [getFlowsByUser]);
 
   useEffect(() => {
     if (isLoaded && isSignedIn) fetchFlows();
     else if (isLoaded && !isSignedIn) setLoading(false);
-  }, [isLoaded, isSignedIn]);
+  }, [isLoaded, isSignedIn, fetchFlows]);
 
   const confirmDelete = (flow) => {
     setSelectedFlow(flow);
@@ -89,7 +87,7 @@ export default function FlowsPage() {
     setCreatingFlow(true);
     try {
       const flow = await createFlow({ name: newFlowName.trim() });
-      if (!flow || !flow.id) throw new Error("CreateFlow did not return an id.");
+      if (!flow?.id) throw new Error("No ID returned.");
       setCreateDialogOpen(false);
       setNewFlowName("");
       await fetchFlows();
@@ -103,12 +101,39 @@ export default function FlowsPage() {
 
   return (
     <div className="min-h-screen flex bg-background">
+
+      {/* Sidebar (desktop only, assuming it hides internally on mobile) */}
       <Sidebar />
 
       <div className="flex-1 flex flex-col">
-        <main className="flex-1 p-6 md:p-10 max-w-7xl mx-auto w-full" role="main" aria-label="User flows">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold tracking-tight">Your Flows</h1>
+
+        <main
+          className="
+            flex-1 
+            px-4 
+            py-6 
+            sm:px-6 
+            md:px-10 
+            max-w-7xl 
+            mx-auto 
+            w-full
+          "
+          role="main"
+        >
+
+          {/* Header Section */}
+          <div className="
+            flex 
+            flex-col 
+            sm:flex-row 
+            sm:justify-between 
+            sm:items-center 
+            gap-4 
+            mb-8
+          ">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+              Your Flows
+            </h1>
           </div>
 
           <FlowsList
@@ -122,16 +147,38 @@ export default function FlowsPage() {
             onCreate={() => setCreateDialogOpen(true)}
           />
 
-          {/* Floating Create Flow button */}
-          <button
-            className="fixed bottom-6 right-6 md:bottom-10 md:right-10 z-30 shadow-lg bg-primary text-white hover:bg-primary/80 h-14 w-14 rounded-full p-0 flex items-center justify-center transition-all focus:ring-2 focus:ring-primary"
-            aria-label="Create Flow"
-            onClick={() => setCreateDialogOpen(true)}
-          >
-            <Plus className="w-7 h-7" />
-          </button>
         </main>
 
+        {/* Floating Create Flow Button */}
+        <button
+          className="
+            fixed 
+            bottom-6 
+            right-6 
+            sm:bottom-8 
+            sm:right-8 
+            z-30 
+            shadow-xl 
+            bg-primary 
+            text-white 
+            hover:bg-primary/90 
+            h-14 
+            w-14 
+            rounded-full 
+            flex 
+            items-center 
+            justify-center 
+            transition-all 
+            focus:ring-2 
+            focus:ring-primary
+          "
+          aria-label="Create Flow"
+          onClick={() => setCreateDialogOpen(true)}
+        >
+          <Plus className="w-6 h-6" />
+        </button>
+
+        {/* Dialogs */}
         <CreateDialog
           open={createDialogOpen}
           onClose={() => setCreateDialogOpen(false)}
@@ -149,7 +196,11 @@ export default function FlowsPage() {
           flowName={selectedFlow?.name || `Flow ${selectedFlow?.id}`}
         />
 
-        <RunDialog open={runDialogOpen} onClose={() => setRunDialogOpen(false)} message={runMessage} />
+        <RunDialog
+          open={runDialogOpen}
+          onClose={() => setRunDialogOpen(false)}
+          message={runMessage}
+        />
       </div>
     </div>
   );
