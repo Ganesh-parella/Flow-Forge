@@ -47,13 +47,13 @@ export default function FlowsList({
     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
       {flows.map((flow) => (
         <FlowCard
-          key={flow.Id}
+          key={flow.id}
           flow={flow}
           onEdit={onEdit}
           onDelete={onDelete}
           onRun={onRun}
-          deleting={deletingFlowId === flow.Id}
-          running={runningFlowId === flow.Id}
+          deleting={deletingFlowId === flow.id}
+          running={runningFlowId === flow.id}
         />
       ))}
     </div>
