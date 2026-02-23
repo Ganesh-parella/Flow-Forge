@@ -1,83 +1,62 @@
 import React from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Edit, Play, Trash, Loader2 } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Trash2, Play, Pencil } from "lucide-react";
 
 export default function FlowCard({
   flow,
   onEdit,
-  onRun,
   onDelete,
+  onRun,
   deleting,
   running,
 }) {
   return (
-    <Card className="group relative overflow-visible p-0 border hover:shadow-lg shadow transition-all duration-200">
-      <CardHeader
-        onClick={() => onEdit(flow)}
-        className="flex flex-row items-center justify-between gap-2 bg-accent/30 p-4 rounded-t-lg cursor-pointer"
-      >
-        <CardTitle className="truncate text-lg font-semibold">
+    <Card className="p-5 flex flex-col justify-between hover:shadow-lg transition-all">
+      {/* Flow Info */}
+      <div>
+        <h3 className="text-lg font-semibold mb-2 truncate">
           {flow.name || `Flow ${flow.id}`}
-        </CardTitle>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="opacity-60 hover:bg-accent/90 focus:bg-accent p-0 h-8 w-8"
-              aria-label={`Open menu for ${flow.name || `flow ${flow.id}`}`}
-            >
-              <MoreHorizontal className="h-5 w-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-44 rounded-xl shadow-xl">
-            <DropdownMenuItem onClick={() => onEdit(flow)}>
-              <Edit className="w-4 h-4 mr-2" /> Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onRun(flow)} disabled={running}>
-              {running ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Running...
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4 mr-2" />
-                  Run
-                </>
-              )}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => onDelete(flow)}
-              disabled={deleting}
-              className="text-destructive focus:text-destructive"
-            >
-              <Trash className="w-4 h-4 mr-2" /> Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </CardHeader>
-      <CardContent className="px-4 pb-6 pt-4 flex flex-col gap-2">
-        <span className="text-muted-foreground text-xs">
-          Last updated:{" "}
-          {flow.updatedAt
-            ? new Date(flow.updatedAt).toLocaleString(undefined, {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })
-            : "N/A"}
-        </span>
-      </CardContent>
+        </h3>
+
+        <p className="text-sm text-muted-foreground">
+          Created{" "}
+          {flow.createdAt
+            ? new Date(flow.createdAt).toLocaleDateString()
+            : "—"}
+        </p>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex flex-wrap justify-end gap-3 mt-6">
+        <button
+          onClick={() => onEdit(flow)} // Passing the whole object is usually best for Edits!
+          className="p-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition"
+        >
+          <Pencil className="w-4 h-4" />
+        </button>
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onRun(flow.id); // FIXED: Now passing only the ID
+          }}
+          disabled={running}
+          className="p-2 rounded-lg bg-green-500 text-white hover:bg-green-600 disabled:opacity-50 transition"
+        >
+          <Play className="w-4 h-4" />
+        </button>
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(flow.id); // FIXED: Now passing only the ID
+          }}
+          disabled={deleting}
+          className="p-2 rounded-lg bg-red-500 text-white hover:bg-red-600 disabled:opacity-50 transition"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
     </Card>
   );
 }
