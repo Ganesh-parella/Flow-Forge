@@ -4,86 +4,193 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { Copy } from "lucide-react";
+import { Copy, Check, X, Settings2 } from "lucide-react";
 
-function SettingsPanel({ node, updateNodeData, flowId }) {
+const WEBHOOK_BASE_URL =
+  import.meta.env.VITE_WEBHOOK_BASE_URL ||
+  "https://flow-forge-2txl.onrender.com/api/webhooks";
+
+function SettingsPanel({ node, updateNodeData, flowId, onClose }) {
+  const [copied, setCopied] = useState(false);
+
   if (!node) return null;
 
-  const [copySuccess, setCopySuccess] = useState("");
-  const webhookUrl = `https://flow-forge-2txl.onrender.com/api/webhooks/${flowId}`; // Ensure production URL here
+  const webhookUrl = `${WEBHOOK_BASE_URL}/${flowId}`;
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(webhookUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  const title =
+    node.data.label ||
+    node.type.charAt(0).toUpperCase() + node.type.slice(1).replace(/-/g, " ");
 
   return (
-    // FIX: Replaced static positioning with mobile-first bottom-sheet style layout that shifts to side-panel on desktop
-    <Card className="absolute bottom-4 left-4 right-4 md:bottom-auto md:left-auto md:right-7 md:top-20 md:w-80 bg-white border shadow-xl z-50 animate-in slide-in-from-bottom md:slide-in-from-right fade-in duration-200 max-h-[50vh] md:max-h-[75vh] overflow-y-auto">
-      <CardHeader className="p-4 md:p-6 pb-2 md:pb-4 border-b md:border-none sticky top-0 bg-white z-10">
-        <CardTitle className="text-lg md:text-xl">
-          {node.data.label || node.type[0].toUpperCase() + node.type.slice(1)} Settings
-        </CardTitle>
+    <Card
+      className="
+        absolute bottom-4 left-4 right-4
+        md:bottom-auto md:left-auto md:right-5 md:top-[4.5rem] md:w-80
+        bg-white border shadow-xl z-50
+        max-h-[55vh] md:max-h-[calc(100vh-6rem)]
+        overflow-y-auto
+        animate-in fade-in-0 slide-in-from-bottom-4 md:slide-in-from-right-4 duration-200
+        rounded-xl
+      "
+    >
+      {/* Header */}
+      <CardHeader className="sticky top-0 bg-white z-10 p-4 border-b flex flex-row items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <Settings2 className="w-4 h-4 text-muted-foreground shrink-0" />
+          <CardTitle className="text-sm font-semibold truncate">{title}</CardTitle>
+        </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center hover:bg-muted transition-colors"
+            aria-label="Close settings"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
       </CardHeader>
 
-      <CardContent className="p-4 md:p-6 pt-4 space-y-3">
+      <CardContent className="p-4 space-y-4">
+
+        {/* ── Webhook Trigger ── */}
         {node.type === "trigger" && (
-          <div>
-            <p className="text-xs mb-1 font-medium text-slate-700">Webhook URL</p>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">Webhook URL</label>
             {flowId ? (
               <div className="flex gap-2 items-center">
-                <Input value={webhookUrl} readOnly className="bg-gray-50 text-xs sm:text-sm cursor-pointer" />
-                <TooltipProvider>
+                <Input
+                  value={webhookUrl}
+                  readOnly
+                  className="bg-muted/50 text-xs font-mono cursor-text flex-1"
+                  aria-label="Webhook URL"
+                />
+                <TooltipProvider delayDuration={300}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="outline" size="icon" onClick={() => {
-                        navigator.clipboard.writeText(webhookUrl);
-                        setCopySuccess("Copied!");
-                        setTimeout(() => setCopySuccess(""), 1200);
-                      }}>
-                        <Copy className="w-4 h-4" />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={handleCopy}
+                        className="shrink-0 h-9 w-9 transition-all duration-150"
+                        aria-label="Copy webhook URL"
+                      >
+                        {copied ? (
+                          <Check className="w-3.5 h-3.5 text-green-500" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5" />
+                        )}
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Copy URL</TooltipContent>
+                    <TooltipContent side="left">
+                      {copied ? "Copied!" : "Copy URL"}
+                    </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground rounded bg-gray-100 p-2">Save the flow to generate a unique webhook URL.</p>
+              <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2.5">
+                Save the flow first to generate a unique webhook URL.
+              </p>
             )}
-            {copySuccess && <span className="text-xs text-green-500 mt-1 block">{copySuccess}</span>}
           </div>
         )}
 
+        {/* ── Gmail Action ── */}
         {node.type === "gmail-send-action" && (
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-700">To</label>
-            <Input value={node.data.to || ""} onChange={e => updateNodeData(d => ({ ...d, to: e.target.value }))} placeholder="recipient@example.com" />
-            
-            <label className="text-xs font-medium text-slate-700">Subject</label>
-            <Input value={node.data.subject || ""} onChange={e => updateNodeData(d => ({ ...d, subject: e.target.value }))} placeholder="Your Subject" />
-            
-            <label className="text-xs font-medium text-slate-700">Body</label>
-            <Textarea rows={3} value={node.data.body || ""} onChange={e => updateNodeData(d => ({ ...d, body: e.target.value }))} placeholder="Email content..." className="resize-none" />
+          <div className="space-y-3">
+            <Field label="To">
+              <Input
+                value={node.data.to || ""}
+                onChange={(e) => updateNodeData((d) => ({ ...d, to: e.target.value }))}
+                placeholder="recipient@example.com"
+              />
+            </Field>
+            <Field label="Subject">
+              <Input
+                value={node.data.subject || ""}
+                onChange={(e) => updateNodeData((d) => ({ ...d, subject: e.target.value }))}
+                placeholder="Email subject"
+              />
+            </Field>
+            <Field label="Body">
+              <Textarea
+                rows={4}
+                value={node.data.body || ""}
+                onChange={(e) => updateNodeData((d) => ({ ...d, body: e.target.value }))}
+                placeholder="Email content… Use {{payload.field}} for dynamic values."
+                className="resize-none text-sm"
+              />
+            </Field>
           </div>
         )}
 
+        {/* ── Delay Action ── */}
         {node.type === "delay-action" && (
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-700">Duration (milliseconds)</label>
-            <Input type="number" value={node.data.durationMs || 1000} onChange={e => updateNodeData(d => ({ ...d, durationMs: parseInt(e.target.value, 10) || 0 }))} placeholder="e.g., 5000" />
-          </div>
+          <Field label="Duration (milliseconds)">
+            <Input
+              type="number"
+              min={0}
+              value={node.data.durationMs ?? 1000}
+              onChange={(e) =>
+                updateNodeData((d) => ({ ...d, durationMs: parseInt(e.target.value, 10) || 0 }))
+              }
+              placeholder="e.g. 5000"
+            />
+            <p className="text-[10px] text-muted-foreground mt-1">
+              {((node.data.durationMs || 0) / 1000).toFixed(1)}s
+            </p>
+          </Field>
         )}
 
+        {/* ── Google Sheets Action ── */}
         {node.type === "google-sheets-add-row-action" && (
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-700">Spreadsheet ID</label>
-            <Input value={node.data.spreadsheetId || ""} onChange={e => updateNodeData(d => ({ ...d, spreadsheetId: e.target.value }))} placeholder="e.g., 1BxiMVs0XRA5nFMd..." />
-            
-            <label className="text-xs font-medium text-slate-700">Sheet Name</label>
-            <Input value={node.data.sheetName || ""} onChange={e => updateNodeData(d => ({ ...d, sheetName: e.target.value }))} placeholder="e.g., Sheet1" />
-            
-            <label className="text-xs font-medium text-slate-700">Row Values (comma-separated)</label>
-            <Textarea rows={3} value={node.data.rowValues || ""} onChange={e => updateNodeData(d => ({ ...d, rowValues: e.target.value }))} placeholder="e.g., Value A, {{payload.email}}" className="resize-none" />
+          <div className="space-y-3">
+            <Field label="Spreadsheet ID">
+              <Input
+                value={node.data.spreadsheetId || ""}
+                onChange={(e) =>
+                  updateNodeData((d) => ({ ...d, spreadsheetId: e.target.value }))
+                }
+                placeholder="1BxiMVs0XRA5nFMd…"
+                className="font-mono text-xs"
+              />
+            </Field>
+            <Field label="Sheet Name">
+              <Input
+                value={node.data.sheetName || ""}
+                onChange={(e) => updateNodeData((d) => ({ ...d, sheetName: e.target.value }))}
+                placeholder="Sheet1"
+              />
+            </Field>
+            <Field label="Row Values (comma-separated)">
+              <Textarea
+                rows={3}
+                value={node.data.rowValues || ""}
+                onChange={(e) => updateNodeData((d) => ({ ...d, rowValues: e.target.value }))}
+                placeholder="Value A, {{payload.email}}, Value C"
+                className="resize-none text-sm"
+              />
+            </Field>
           </div>
         )}
       </CardContent>
     </Card>
+  );
+}
+
+// Small helper for consistent field layout
+function Field({ label, children }) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-xs font-medium text-muted-foreground">{label}</label>
+      {children}
+    </div>
   );
 }
 

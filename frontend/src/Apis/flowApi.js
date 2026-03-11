@@ -1,78 +1,84 @@
-import useApiClient from "./ClerkApi"; // Custom axios instance with Clerk token
-import { useCallback } from "react";
+import useApiClient from './ClerkApi';
+import { useCallback } from 'react';
 
+/**
+ * All API calls.
+ * Because ClerkApi normalises PascalCase → camelCase on every response,
+ * callers can use flow.id, flow.name, flow.definitionJson, flow.updatedAt, etc.
+ *
+ * Backend endpoints (from FlowsController + ConnectionsController):
+ *   POST   /api/flows                          → create flow
+ *   GET    /api/flows/user/me                  → list user flows
+ *   GET    /api/flows/:id                      → get single flow
+ *   PUT    /api/flows/:id                      → update flow
+ *   DELETE /api/flows/:id                      → delete flow
+ *   POST   /api/flows/:id/run                  → trigger execution
+ *   GET    /api/connections                    → { google: bool }
+ *   GET    /api/connections/google/connect-url → { url: string }
+ *   DELETE /api/connections/google/disconnect  → disconnect google
+ */
 export const useFlowApi = () => {
-  const api = useApiClient(); // Authenticated axios instance
+  const api = useApiClient();
 
-  // ---------------- FLOW MANAGEMENT ----------------
+  // ── Flow CRUD ──────────────────────────────────────────────────────────────
 
   const createFlow = useCallback(async (data) => {
-    const response = await api.post('/flows', data);
-    return response.data;
+    const res = await api.post('/flows', data);
+    return res.data; // { id, name, definitionJson, updatedAt, createdAt, ... }
   }, [api]);
 
   const getFlowsByUser = useCallback(async () => {
-    const response = await api.get('/flows/user/me');
-    return response.data;
+    const res = await api.get('/flows/user/me');
+    return res.data; // array of flow objects
   }, [api]);
 
   const getFlowById = useCallback(async (id) => {
-    const response = await api.get(`/flows/${id}`);
-    return response.data;
+    const res = await api.get(`/flows/${id}`);
+    return res.data;
   }, [api]);
 
   const updateFlow = useCallback(async (id, data) => {
-    const response = await api.put(`/flows/${id}`, data);
-    return response.data;
+    const res = await api.put(`/flows/${id}`, data);
+    return res.data;
   }, [api]);
 
   const deleteFlow = useCallback(async (id) => {
     await api.delete(`/flows/${id}`);
   }, [api]);
 
+  // ── Execution ─────────────────────────────────────────────────────────────
+
   const runFlow = useCallback(async (id) => {
-    const response = await api.post(`/flows/${id}/run`);
-    return response.data;
+    const res = await api.post(`/flows/${id}/run`);
+    return res.data; // { message: "Flow execution started." }
   }, [api]);
 
-  // ---------------- CONNECTION MANAGEMENT ----------------
+  // ── Connections ───────────────────────────────────────────────────────────
 
-  /**
-   * Fetches the Google OAuth connect URL from the backend.
-   * Backend returns: { url: "https://accounts.google.com/o/oauth2/auth?..." }
-   */
+  /** Returns { url: "https://accounts.google.com/..." } */
   const getGoogleConnectUrl = useCallback(async () => {
-    const response = await api.get('/connections/google/connect-url');
-    return response.data; // { url: "...google auth URL..." }
+    const res = await api.get('/connections/google/connect-url');
+    return res.data;
   }, [api]);
 
-  /**
-   * Fetches the current connection status of all services.
-   * Backend returns: { google: true/false }
-   */
+  /** Returns { google: true | false } */
   const getConnections = useCallback(async () => {
-    const response = await api.get('/connections');
-    return response.data;
+    const res = await api.get('/connections');
+    return res.data;
   }, [api]);
 
-  /**
-   * Disconnects Google for the current user.
-   */
   const disconnectGoogle = useCallback(async () => {
-    const response = await api.delete('/connections/google/disconnect');
-    return response.data;
+    const res = await api.delete('/connections/google/disconnect');
+    return res.data;
   }, [api]);
 
   return {
-    // Flow endpoints
     createFlow,
     getFlowsByUser,
     getFlowById,
     updateFlow,
     deleteFlow,
     runFlow,
-
-    // Connection endpoints
     getConnections,
     getGoogleConnectUrl,
     disconnectGoogle,

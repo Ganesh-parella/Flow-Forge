@@ -8,27 +8,41 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
+
+// ─── Delete Dialog ─────────────────────────────────────────────────────────────
 
 export function DeleteDialog({ open, onClose, onConfirm, isLoading, flowName }) {
   return (
     <Dialog open={open} onOpenChange={onClose} modal>
-      <DialogContent>
+      <DialogContent className="sm:max-w-md animate-in fade-in-0 zoom-in-95 duration-200">
         <DialogHeader>
-          <DialogTitle>Delete Flow</DialogTitle>
-          <DialogDescription>
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-9 h-9 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-4 h-4 text-destructive" />
+            </div>
+            <DialogTitle>Delete Flow</DialogTitle>
+          </div>
+          <DialogDescription className="pl-12">
             Are you sure you want to delete{" "}
-            <span className="font-semibold">{flowName}</span>? This action cannot be undone.
+            <span className="font-semibold text-foreground">{flowName}</span>?
+            This action cannot be undone.
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter>
+        <DialogFooter className="gap-2 sm:gap-2 mt-2">
           <Button variant="outline" onClick={onClose} disabled={isLoading}>
             Cancel
           </Button>
-          <Button variant="destructive" onClick={onConfirm} disabled={isLoading}>
+          <Button
+            variant="destructive"
+            onClick={onConfirm}
+            disabled={isLoading}
+            className="gap-2"
+          >
             {isLoading ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin mr-2" /> Deleting...
+                <Loader2 className="w-4 h-4 animate-spin" /> Deleting…
               </>
             ) : (
               "Delete"
@@ -40,53 +54,101 @@ export function DeleteDialog({ open, onClose, onConfirm, isLoading, flowName }) 
   );
 }
 
+// ─── Run Result Dialog ─────────────────────────────────────────────────────────
+
 export function RunDialog({ open, onClose, message }) {
+  const isSuccess = message?.toLowerCase().includes("success");
+
   return (
     <Dialog open={open} onOpenChange={onClose} modal>
-      <DialogContent>
+      <DialogContent className="sm:max-w-md animate-in fade-in-0 zoom-in-95 duration-200">
         <DialogHeader>
-          <DialogTitle>Flow Execution Result</DialogTitle>
-          <DialogDescription>{message}</DialogDescription>
+          <div className="flex items-center gap-3 mb-1">
+            <div
+              className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
+                isSuccess ? "bg-green-100" : "bg-destructive/10"
+              }`}
+            >
+              <CheckCircle2
+                className={`w-4 h-4 ${isSuccess ? "text-green-600" : "text-destructive"}`}
+              />
+            </div>
+            <DialogTitle>Execution Result</DialogTitle>
+          </div>
+          <DialogDescription className="pl-12">{message}</DialogDescription>
         </DialogHeader>
-        <DialogFooter>
-          <Button onClick={onClose}>OK</Button>
+        <DialogFooter className="mt-2">
+          <Button onClick={onClose} className="w-full sm:w-auto">
+            Done
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
 
-export function CreateDialog({ open, onClose, onCreate, isLoading, newFlowName, setNewFlowName }) {
+// ─── Create Dialog ─────────────────────────────────────────────────────────────
+
+export function CreateDialog({
+  open,
+  onClose,
+  onCreate,
+  isLoading,
+  newFlowName,
+  setNewFlowName,
+}) {
   const handleSubmit = (e) => {
     e.preventDefault();
-    onCreate();
+    if (newFlowName.trim()) onCreate();
+  };
+
+  const handleOpenChange = (isOpen) => {
+    if (!isOpen) onClose();
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose} modal>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={handleOpenChange} modal>
+      <DialogContent className="sm:max-w-md animate-in fade-in-0 zoom-in-95 duration-200">
         <DialogHeader>
           <DialogTitle>Create a new Flow</DialogTitle>
-          <DialogDescription>Give your flow a recognizable name.</DialogDescription>
+          <DialogDescription>
+            Give your workflow a clear, recognizable name.
+          </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
+
+        <form onSubmit={handleSubmit} className="space-y-4 mt-1">
+          <Input
             autoFocus
-            placeholder="Flow name"
+            placeholder="e.g. Welcome Email Sequence"
             value={newFlowName}
             disabled={isLoading}
             onChange={(e) => setNewFlowName(e.target.value)}
-            aria-label="Flow name input"
-            className="w-full rounded border p-2"
+            aria-label="Flow name"
+            className="h-10"
           />
-          <div className="flex justify-end gap-2 mt-4">
-            <Button variant="outline" onClick={onClose} disabled={isLoading}>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isLoading}
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading || !newFlowName.trim()}>
-              {isLoading ? "Creating..." : "Create"}
+            <Button
+              type="submit"
+              disabled={isLoading || !newFlowName.trim()}
+              className="gap-2"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Creating…
+                </>
+              ) : (
+                "Create Flow"
+              )}
             </Button>
-          </div>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

@@ -1,27 +1,51 @@
 import axios from 'axios';
 import { useAuth } from '@clerk/clerk-react';
+import { useMemo } from 'react';
 
-// This custom hook returns a configured axios instance.
+/**
+ * NOTE: The .NET backend already has JsonNamingPolicy.CamelCase configured
+ * in Program.cs, so responses arrive as camelCase (id, name, definitionJson,
+ * updatedAt) — no key transformation needed here.
+ */
 const useApiClient = () => {
   const { getToken } = useAuth();
 
-  // Create an axios instance with a base URL from environment variables.
-  // In your .env file, you would have: REACT_APP_API_BASE_URL=https://localhost:7025/api
- const apiClient = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE_URL || 'https://localhost:7025/api',
-  });
+  const apiClient = useMemo(() => {
+    const instance = axios.create({
+      baseURL: import.meta.env.VITE_API_BASE_URL || 'https://flow-forge-2txl.onrender.com/api',
+      timeout: 15000,
+    });
 
-  // Use an interceptor to add the JWT token from Clerk to every request.
-  // This is the key to authenticating your frontend with your backend.
-  apiClient.interceptors.request.use(async (config) => {
-    const token = await getToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  }, (error) => {
-    return Promise.reject(error);
-  });
+    // Attach Clerk JWT to every request
+    instance.interceptors.request.use(
+      async (config) => {
+        try {
+          const token = await getToken();
+          if (token) config.headers.Authorization = `Bearer ${token}`;
+        } catch (err) {
+          console.error('[API] Failed to retrieve auth token:', err);
+        }
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
+
+    // Surface clean error messages from backend responses
+    instance.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        const message =
+          error?.response?.data?.message ||
+          error?.response?.data?.title ||
+          error?.message ||
+          'An unexpected error occurred.';
+        return Promise.reject(new Error(message));
+      }
+    );
+
+    return instance;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return apiClient;
 };
